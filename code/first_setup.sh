@@ -6,6 +6,7 @@ sudo apt upgrade -y
 
 # Install the required packages
 sudo apt install dnsmasq -y
+sudo apt-get install hostapd -y
 
 # Remove unnecessary files.
 sudo apt autoremove -y
