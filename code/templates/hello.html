@@ -1,17 +1,16 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <title>Hello, world!</title>
-    <style>
-      h1 {
-        font-size: 72px;
-        color: #FF69B4;
-        text-align: center;
-        margin-top: 50px;
-      }
-    </style>
-  </head>
-  <body>
-    <h1>Hello, world!</h1>
-  </body>
+<head>
+    <title>Download File</title>
+</head>
+<body>
+    <h1>Download File</h1>
+    <form action="/download_file" method="post">
+        <label for="server_ip">Server IP Address:</label>
+        <input type="text" id="server_ip" name="server_ip"><br><br>
+        <label for="file_path">File Path:</label>
+        <input type="text" id="file_path" name="file_path"><br><br>
+        <input type="submit" value="Download">
+    </form>
+</body>
 </html>

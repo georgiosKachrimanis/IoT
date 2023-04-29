@@ -4,22 +4,26 @@
     <title>Control Panel</title>
 </head>
 <body>
-    <h1>Camera Control</h1>
-    <h2>Connected Devices:</h2>
-    {% for hostname in filtered_hostnames %}
-        {% if hostname.startswith('pi') %}
+    <h1>DEVICE CONTROL</h1>
+        <h2>Connected Devices:</h2>
+            {% for hostname in filtered_hostnames %}
+            {% if hostname.startswith('pi') %}
             <p>{{ hostname }}:</p>
-            <form action="http://{{ hostname }}.local:5000/start_camera" method="POST">
-                <input type="submit" value="Start Camera">
-            </form>
-            <form action="http://{{ hostname }}.local:5000/stop_camera" method="POST">
-                <input type="submit" value="Stop Camera">
-            </form>
-            <form action="/start_server/{{ hostname }}" method="POST">
-                <input type="submit" value="Start Server">
-            </form>
+                <form action="/start_server/{{ hostname }}" method="POST">
+                    <input type="submit" value="Start Server">
+                </form>
+                    <p>{{ response }}</p>
+                <form action="/" method="GET">
+                    <input type="submit" value="Device Status">
+                </form>
+                <form action="http://{{ hostname }}.local:5000/start_camera" method="POST">
+                    <input type="submit" value="Start Camera">
+                </form>
+                <form action="http://{{ hostname }}.local:5000/stop_camera" method="POST">
+                    <input type="submit" value="Stop Camera">
+                </form>
             <br>
-        {% endif %}
-    {% endfor %}
+            {% endif %}
+            {% endfor %}
 </body>
 </html>
