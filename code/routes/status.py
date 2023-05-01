@@ -9,6 +9,7 @@ import requests
 # Starting values of location and battery
 coordinates = "A", 0
 battery = 100
+bandwidth = 100
 
 
 def is_rpi_ap():
