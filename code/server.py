@@ -1,8 +1,8 @@
 from flask import *
-from routes import status
+
+import routes
+from routes import status, control_functions
 from routes.camera_control import start_camera, stop_camera
-from routes.control_panel import devices
-from routes.control_panel import control_panel
 from routes.server_control import start_server, check_server_status
 from routes.status import *
 import requests
@@ -28,37 +28,19 @@ def stop_camera_handler():
     return stop_camera()
 
 
-
 @server.route('/')
 def home():
-
     return render_template('hello.html')
 
 
 @server.route('/download_file', methods=['POST'])
 def download():
-    server_ips = devices()
-    # get the server IP address and file path from the request form
-    for i in server_ips:
-        file_path = 'data/data.json'
-        localhost = status.get_device_name()
-        print(file_path)
-
-        # construct the URL of the file on the remote server
-        url = f'http://{i}@{i}.local:5000/download/{file_path}'
-        print(url)
-        # download the file and save it to the local file system
-        file_name = file_path.split('/')[-1]
-        local_file_path = f'/home/{localhost}/Desktop/code/data/{i}data.json' # Remove the 'pi' prefix from i
-        download_file(url, local_file_path)
-        print(url + "and this is the " + local_file_path)
-    # return a response to the client
-    return f'Downloaded file from '
+    status.download()
 
 
 @server.route('/index')
 def index():
-    return control_panel()
+    return render_template('hello.html')
 
 
 @server.route('/start_server/<hostname>', methods=['POST'])
@@ -73,7 +55,7 @@ def send_request(url):
 
 @server.route('/download/<path:file_path>')
 def serve_file(file_path):
-    print(f'////////{file_path}/////////////')
+    create_json_data_file()
     try:
         return send_file(file_path, as_attachment=True)
     except Exception as e:
@@ -90,7 +72,6 @@ def data():
     return render_template('data.html', data=data)
 
 
-
 @server.route('/status/<hostname>', methods=['GET'])
 def server_status(hostname):
     response = send_request('http://' + hostname + '.local:5000/')
@@ -101,16 +82,6 @@ def server_status(hostname):
 def end():
     return shutdown()
 
-
-def download_file(url, file_path):
-
-    response = requests.get(url, stream=True)
-    print(f"**********FILE PATH:{file_path}")
-    with open(file_path, 'wb') as f:
-        for chunk in response.iter_content(chunk_size=1024):
-            if chunk:
-                f.write(chunk)
-    return file_path
 
 
 # Start the server on all network interfaces
