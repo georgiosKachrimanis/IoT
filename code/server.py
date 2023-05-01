@@ -1,9 +1,9 @@
 from flask import *
 
 import routes
-from routes import status, control_functions
+from routes import status
 from routes.camera_control import start_camera, stop_camera
-from routes.server_control import start_server, check_server_status
+from routes.server_control import start_server
 from routes.status import *
 import requests
 
