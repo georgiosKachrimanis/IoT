@@ -6,7 +6,7 @@ import random
 import string
 import requests
 
-# Starting values of location and battery
+# Starting values of location and battery and AP Bandwidth with the server
 coordinates = "A", 0
 battery = 100
 bandwidth = 100
