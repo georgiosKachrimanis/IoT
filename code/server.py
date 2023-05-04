@@ -1,6 +1,6 @@
 from flask import *
-
-import routes
+import io
+import svgwrite
 from routes import status
 from routes.camera_control import start_camera, stop_camera
 from routes.server_control import start_server
@@ -16,10 +16,10 @@ previous_state = ''
 
 @server.route('/camera', methods=['GET', 'POST'])
 def camera():
-    clients = devices()
-    command = request.get_json()
 
-    print(f"Received: {command}")
+    clients = status.devices()
+    command = request.get_json()
+    success = False
     if command['action'] == 'start':
         message = {'message': 'start_camera'}
     elif command['action'] == 'stop':
@@ -28,10 +28,24 @@ def camera():
         message = {'message': 'No Idea'}
 
     for client in clients:
+        print(f'Trying to send request to connected device {client}')
         url = f'http://{client}@{client}:5000/camera_controls'
-        requests.post(url, json=message)
+        server_url = f'http://{client}@{client}:5000/'
+        # Extra code to avoid issues
+        if is_server_active(server_url):
+            response = requests.post(url, json=message)
+            if response.status_code == 200:
+                print('Request sent successfully.')
+                success = True
+            else:
+                print(f'Request failed with status code {response.status_code}.')
+        else:
+            print('Server not active.')
 
-    return jsonify({'success': True})
+    if success:
+        return jsonify({'success': True})
+    else:
+        return jsonify({'success': False})
 
 
 @server.route('/connected')
@@ -101,8 +115,14 @@ def home():
     Returns:
         A rendered HTML template for the home page.
     """
+    connected_devices_data = []
+    if os.path.exists(f'/home/{hostname}/Desktop/code/data/connected_devices.json'):
+        with open(f'/home/{hostname}/Desktop/code/data/connected_devices.json', 'r') as f:
+            connected_devices_data = json.load(f)
+            print(connected_devices_data)
+    return render_template('index.html', devices_data=connected_devices_data)
 
-    return render_template('hello.html')
+from flask import current_app
 
 
 @server.route('/download_file', methods=['POST'])
@@ -117,11 +137,6 @@ def download():
         None.
     """
     status.download()
-
-
-@server.route('/index')
-def index():
-    return render_template('hello.html')
 
 
 @server.route('/start_server/<hostname>', methods=['POST'])

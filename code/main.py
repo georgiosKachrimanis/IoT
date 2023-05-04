@@ -5,7 +5,7 @@ import threading
 import time
 
 from server import *
-from routes import status
+from routes import status, control_functions
 from routes.status import *
 
 
@@ -33,7 +33,7 @@ def bandwidth_control():
         response = requests.post(url, json=send_command)
         # Check the status code of the response
         if response.status_code == 200:
-            print('Request sent successfully.')
+            print(f'Request has the status {response.status_code}.')
         else:
             print(f'Request failed with status code {response.status_code}.')
     else:
@@ -53,17 +53,18 @@ def main():
     while True:
 
         if is_rpi_ap():
-            print("RPi is in AP mode")
-
+            print(f"RPi {hostname} is in AP mode")
             # Get the data of the connected devices
             download()
             # Check the available bandwidth with the Cloud Server and
             bandwidth_control()
+            control_functions.create_devices_file()
+
 
         elif check_wifi_connection():
 
             # Here we will create the commands to check start the camera automatically
-            print("Rpi is connected to a known network")
+            print(f"Rpi {hostname} is connected to {get_wifi_network()}")
         else:
             # Here we will create the commands to stop broadcasting and try to create a new AP
             # (If we have time we can also check the option to return to another network)

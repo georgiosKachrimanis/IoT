@@ -1,13 +1,14 @@
+import datetime
 import socket
 import subprocess
 import psutil
 import json
 import random
-import string
+import os
 import requests
 
 # Starting values of location and battery and AP Bandwidth with the server
-coordinates = "A", 0
+coordinates = 0, 0
 battery = 100
 bandwidth = 100
 
@@ -38,6 +39,18 @@ def devices():
     return filtered_hostnames
 
 
+def is_server_active(url):
+    try:
+        response = requests.get(url)
+        if response.status_code == 200:
+            print(f'server with {url} is active')
+            return True
+        else:
+            return False
+    except:
+        return False
+
+
 def disk_space():
     disk_usage = psutil.disk_usage('/')
     return disk_usage.free
@@ -53,10 +66,19 @@ def get_device_name():
 
 def new_coordinates():
     # Generate a random integer between 1 and 10 for the X coordinate
-    y = random.randint(0, 9)
+    y = random.randint(-10, 10)
     # Generate a random uppercase letter between A and J for the Y coordinate
-    x = random.choice(string.ascii_uppercase[0:10])
+    x = random.randint(-10, 10)
     return x, y
+
+
+def get_wifi_network():
+    # Run the iwconfig command and capture the output
+    output = subprocess.check_output(['iwgetid', '-r'])
+
+    # Convert the output to a string and remove any trailing newlines
+    ssid = output.decode('utf-8').rstrip('\n')
+    return ssid
 
 
 def new_battery():
@@ -90,6 +112,7 @@ def create_json_data_file():
 
     # Store the information, the size of memory and storage is in MBytes
     data['name'] = hostname
+    data['time'] = datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
     data['battery_percent'] = battery
     data['available_storage'] = round(available_storage / 1024 / 1024, 2)
     data['total_memory'] = round(mem.total / 1024 / 1024, 2)
@@ -98,34 +121,38 @@ def create_json_data_file():
     data['is_ap'] = is_rpi_ap()
 
     # Write the dictionary to the JSON file
-    # The file_path is to avoid problems with the installation
-    file_path = '/home/' + hostname + '/Desktop/code/data/data.json'
+    file_path = f'/home/{hostname}/Desktop/code/data/{hostname}data.json'  # <-- Add hostname to file path
     with open(file_path, 'w') as f:
         json.dump(data, f)
 
+    # In order to avoid problems with write read rights
+    os.chmod(file_path, 0o666)
     return file_path
+
+
 
 def download():
     client_ips = devices()
     # get the server IP address and file path from the request form
     for i in client_ips:
-        file_path = 'data/data.json'
+        file_path = f'data/{i}data.json'
         localhost = get_device_name()
         # construct the URL of the file on the remote server
-        url = f'http://{i}@{i}.local:5000/download/{file_path}'
-        # download the file and save it to the local file system
-        file_name = file_path.split('/')[-1]
-        local_file_path = f'/home/{localhost}/Desktop/code/data/{i}data.json'  # Remove the 'pi' prefix from i
+        server_url = f'http://{i}@{i}.local:5000/'
 
-        try:
-            download_file(url, local_file_path)
-            print(f"The data file from {i} is added.")
-        except requests.exceptions.RequestException as e:
-            print(f"Error downloading file from {i}: {e}")
+        if is_server_active(server_url):
+            url = f'http://{i}@{i}.local:5000/download/{file_path}'
+            local_file_path = f'/home/{localhost}/Desktop/code/data/{i}data.json'
+            try:
+                download_file(url, local_file_path)
+                print(f"The data file from {i} is added.")
+            except requests.exceptions.RequestException as e:
+                print(f"Error downloading file from {i}: {e}")
+        else:
+            print(f'The server on {i} is not reachable')
 
     # return a response to the client
     return 'Downloaded file(s) from server(s).'
-
 
 
 def download_file(url, file_path):
@@ -135,6 +162,9 @@ def download_file(url, file_path):
         for chunk in response.iter_content(chunk_size=1024):
             if chunk:
                 f.write(chunk)
+
+    # In order to avoid problems with write read rights
+    os.chmod(file_path, 0o666)
     return file_path
 
 

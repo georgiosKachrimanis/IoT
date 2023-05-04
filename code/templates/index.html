@@ -1,29 +1,179 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Control Panel</title>
+	<title>Connected Devices</title>
+	<style>
+		table {
+			border-collapse: collapse;
+			width: 100%;
+		}
+
+		th, td {
+			border: 1px solid black;
+			padding: 8px;
+			text-align: center;
+		}
+
+		th {
+			background-color: #eee;
+		}
+
+		tr:nth-child(even) {
+			background-color: #f2f2f2;
+		}
+
+		tr:hover {
+			background-color: #ddd;
+		}
+
+		.ap {
+			background-color: red;
+			color: red;
+			font-weight: bold;
+            fill: greenyellow;
+		}
+
+		.chart-container {
+			display: flex;
+			flex-wrap: wrap;
+			align-items: flex-end;
+			justify-content: center;
+			margin-top: 50px;
+		}
+
+		.chart {
+			display: grid;
+			grid-template-columns: repeat(21, 40px);
+			grid-template-rows: repeat(21, 40px);
+			width: 880px;
+			height: 880px;
+			border: 1px solid black;
+		}
+
+		.x-axis {
+			grid-column: 1 / span 21;
+			height: 1px;
+			border-top: 2px solid black;
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			padding: 0 10px;
+			font-weight: bold;
+			font-size: 16px;
+			position: relative;
+		}
+
+		.x-axis::before {
+			content: '-10';
+			position: absolute;
+			top: -20px;
+			left: 0;
+		}
+
+		.x-axis::after {
+			content: '10';
+			position: absolute;
+			top: -20px;
+			right: 0;
+		}
+
+		.y-axis {
+			grid-row: 1 / span 21;
+			width: 1px;
+			border-left: 2px solid black;
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: space-between;
+			padding: 10px 0;
+			font-weight: bold;
+			font-size: 16px;
+			position: relative;
+		}
+
+		.y-axis::before {
+			content: '-10';
+			position: absolute;
+			bottom: 0;
+			left: -20px;
+		}
+
+		.y-axis::after {
+			content: '10';
+			position: absolute;
+			top: 0;
+			left: -20px;
+		}
+
+		.dot {
+			width: 20px;
+			height: 20px;
+			border-radius: 50%;
+			background-color: green;
+			position: absolute;
+		}
+
+		.ap .dot {
+			background-color: red;
+		}
+
+		.dot-text {
+			font-size: 12px;
+			font-weight: bold;
+			color: white;
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			height: 100%;
+			width: 100%;
+		}
+	</style>
 </head>
-<body>
-    <h1>DEVICE CONTROL</h1>
-        <h2>Connected Devices:</h2>
-            {% for hostname in filtered_hostnames %}
-            {% if hostname.startswith('pi') %}
-            <p>{{ hostname }}:</p>
-                <form action="/start_server/{{ hostname }}" method="POST">
-                    <input type="submit" value="Start Server">
-                </form>
-                    <p>{{ response }}</p>
-                <form action="/" method="GET">
-                    <input type="submit" value="Device Status">
-                </form>
-                <form action="http://{{ hostname }}.local:5000/camera_controls" method="POST">
-                    <input type="submit" value="Start Camera">
-                </form>
-                <form action="http://{{ hostname }}.local:5000/stop_camera" method="POST">
-                    <input type="submit" value="Stop Camera">
-                </form>
-            <br>
-            {% endif %}
-            {% endfor %}
+<body>	<div class="container">
+		<h1>Connected Devices</h1>
+		<table>
+			<thead>
+				<tr>
+					<th>Name</th>
+					<th>Time</th>
+					<th>Battery Percent</th>
+					<th>Available Storage</th>
+					<th>Total Memory</th>
+					<th>Available Memory</th>
+					<th>Position</th>
+					<th>Is AP</th>
+				</tr>
+			</thead>
+			<tbody>
+				{% for device in devices_data %}
+					<tr class="{% if device.is_ap %}ap{% endif %}">
+						<td>{{ device.name }}</td>
+						<td>{{ device.time }}</td>
+						<td>{{ device.battery_percent }}</td>
+						<td>{{ device.available_storage }}</td>
+						<td>{{ device.total_memory }}</td>
+						<td>{{ device.available_memory }}</td>
+						<td>{{ device.position.latitude }}, {{ device.position.longitude }}</td>
+						<td>{% if device.is_ap %}Yes{% else %}No{% endif %}</td>
+					</tr>
+				{% endfor %}
+			</tbody>
+		</table>
+		<div class="chart-container">
+			<div class="chart">
+				{% for device in devices_data %}
+					{% if device.position.latitude is defined and device.position.longitude is defined %}
+						<div class="dot" style="left: {{ (device.position.longitude|float + 10)/20*100 }}%; bottom: {{ (device.position.latitude|float + 10)/20*100 }}%;"></div>
+					{% endif %}
+				{% endfor %}
+				<div class="x-axis"></div>
+				<div class="y-axis"></div>
+				{% for i in range(-10, 11) %}
+					<div class="x-tick" style="left: {{ (i + 10)/20*100 }}%">{{ i }}</div>
+					<div class="y-tick" style="bottom: {{ (i + 10)/20*100 }}%">{{ i }}</div>
+				{% endfor %}
+			</div>
+		</div>
+	</div>
 </body>
 </html>

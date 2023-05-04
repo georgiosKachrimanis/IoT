@@ -165,6 +165,8 @@ def install_apps():
     print("Upgrading and updating your system")
     result1 = os.system('sudo apt-get install python3-flask -y')
     result2 = os.system("sudo DEBIAN_FRONTEND=noninteractive apt install -y netfilter-persistent iptables-persistent")
+    # installing external libraries
+    os.system('sudo pip3 install svgwrite -y')
 
     # Check the result of the installation
     if (result1 == 0) & (result2 == 0):
