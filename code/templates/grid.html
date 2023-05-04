@@ -6,22 +6,52 @@
     <title>Chessboard</title>
     <style>
         body {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-    background-color: #f0f0f0;
-}
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
 
-#chessboard {
-    display: grid;
-    grid-template-columns: repeat(10, 1fr);
-    grid-template-rows: repeat(10, 1fr);
-    width: 480px;
-    height: 480px;
-    border: 2px solid #333;
-}
+        #chess-container {
+            position: relative;
+        }
+
+        #letters {
+            position: absolute;
+            bottom: -24px;
+            left: 0;
+            display: flex;
+            justify-content: space-between;
+            width: 480px;
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        #numbers {
+            position: absolute;
+            top: 0;
+            left: -24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 480px;
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        #chessboard {
+            display: grid;
+            grid-template-columns: repeat(11, 1fr);
+            grid-template-rows: repeat(11, 1fr);
+            width: 480px;
+            height: 480px;
+            border: 2px solid #333;
+            margin: 8px 0;
+        }
 
         .square {
             width: 100%;
@@ -33,32 +63,57 @@
             border-bottom: 2px solid #333;
         }
 
-        .square:nth-child(10n) {
+        .square:nth-child(11n) {
             border-right: none;
         }
 
-        .square:nth-last-child(-n+10) {
+        .square:nth-last-child(-n+11) {
             border-bottom: none;
         }
-
     </style>
-
 </head>
 <body>
-    <div id="chessboard"></div>
+    <div id="chess-container">
+        <div id="letters"></div>
+        <div id="numbers"></div>
+        <div id="chessboard"></div>
+    </div>
     <script>
-            const chessboard = document.getElementById("chessboard");
+        const chessboard = document.getElementById("chessboard");
+        const letters = document.getElementById("letters");
+        const numbers = document.getElementById("numbers");
 
-        function createChessboard() {
-            for (let i = 0; i < 100; i++) {
-                const square = document.createElement("button");
-                square.classList.add("square");
-                chessboard.appendChild(square);
+        function createLabels() {
+            for (let i = -5; i <= 5; i++) {
+                letters.innerHTML += `<span>${i}</span>`;
+            }
+            for (let i = 5; i >= -5; i--) {
+                numbers.innerHTML += `<span>${i}</span>`;
             }
         }
 
-createChessboard();
+        function createChessboard() {
+            for (let row = 1; row <= 11; row++) {
+                for (let col = 1; col <= 11; col++) {
+                    const square = document.createElement("button");
+                    square.classList.add("square");
+                    square.id = `square-${row}-${col}`;
+                    chessboard.appendChild(square);
+                }
+            }
+        }
 
+        function setColor(row, col, color) {
+            const square = document.getElementById(`square-${row}-${col}`);
+            square.style.backgroundColor = color;
+        }
+
+        createLabels();
+        createChessboard();
+        setColor(6, 6, 'orange'); // Example: Set the background color of the square at row 6, column 6 to red.
+        setColor(10, 10, 'green');
+        setColor(1, 6, 'orange');
+        setColor(6, 1, 'orange');
     </script>
 </body>
 </html>
