@@ -8,7 +8,7 @@ import os
 import requests
 
 # Starting values of location and battery and AP Bandwidth with the server
-coordinates = 0, 0
+coordinates = 5, 7
 battery = 100
 bandwidth = 100
 
@@ -128,7 +128,6 @@ def create_json_data_file():
     # In order to avoid problems with write read rights
     os.chmod(file_path, 0o666)
     return file_path
-
 
 
 def download():

@@ -14,7 +14,7 @@
             background-color: #f0f0f0;
         }
 
-        #chess-container {
+        #board-container {
             position: relative;
         }
 
@@ -43,7 +43,7 @@
             pointer-events: none;
         }
 
-        #chessboard {
+        #board {
             display: grid;
             grid-template-columns: repeat(11, 1fr);
             grid-template-rows: repeat(11, 1fr);
@@ -79,7 +79,7 @@
         <div id="chessboard"></div>
     </div>
     <script>
-        const chessboard = document.getElementById("chessboard");
+        const chessboard = document.getElementById("board");
         const letters = document.getElementById("letters");
         const numbers = document.getElementById("numbers");
 

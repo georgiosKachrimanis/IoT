@@ -1,179 +1,210 @@
 <!DOCTYPE html>
-<html>
+<!DOCTYPE html>
+<html lang="EN">
 <head>
-	<title>Connected Devices</title>
-	<style>
-		table {
-			border-collapse: collapse;
-			width: 100%;
-		}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connected Devices</title>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
 
-		th, td {
-			border: 1px solid black;
-			padding: 8px;
-			text-align: center;
-		}
+        #board-container {
+            display: flex;
 
-		th {
-			background-color: #eee;
-		}
+            position: relative;
+        }
 
-		tr:nth-child(even) {
-			background-color: #f2f2f2;
-		}
+        #letters {
+            position: absolute;
+            bottom: -24px;
+            left: 0;
+            display: flex;
+            justify-content: space-between;
+            width: 480px;
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: none;
+        }
 
-		tr:hover {
-			background-color: #ddd;
-		}
+        #numbers {
+            position: absolute;
+            top: 0;
+            left: -24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 480px;
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: none;
+        }
 
-		.ap {
-			background-color: red;
-			color: red;
-			font-weight: bold;
+        #board {
+            display: grid;
+            grid-template-columns: repeat(11, 1fr);
+            grid-template-rows: repeat(11, 1fr);
+            width: 480px;
+            height: 480px;
+            border: 2px solid #333;
+            margin: 8px 0;
+        }
+
+        .board {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+
+        .square {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            border: none;
+            box-sizing: border-box;
+            border-right: 2px solid #333;
+            border-bottom: 2px solid #333;
+        }
+
+        .square:nth-child(11n) {
+            border-right: none;
+        }
+
+        .square:nth-last-child(-n+11) {
+            border-bottom: none;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #eee;
+        }
+
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+
+        tr:hover {
+            background-color: #ddd;
+        }
+
+        .ap {
+            background-color: red;
+            color: red;
+            font-weight: bold;
             fill: greenyellow;
-		}
+        }
 
-		.chart-container {
-			display: flex;
-			flex-wrap: wrap;
-			align-items: flex-end;
-			justify-content: center;
-			margin-top: 50px;
-		}
+    </style>
 
-		.chart {
-			display: grid;
-			grid-template-columns: repeat(21, 40px);
-			grid-template-rows: repeat(21, 40px);
-			width: 880px;
-			height: 880px;
-			border: 1px solid black;
-		}
-
-		.x-axis {
-			grid-column: 1 / span 21;
-			height: 1px;
-			border-top: 2px solid black;
-			display: flex;
-			align-items: center;
-			justify-content: space-between;
-			padding: 0 10px;
-			font-weight: bold;
-			font-size: 16px;
-			position: relative;
-		}
-
-		.x-axis::before {
-			content: '-10';
-			position: absolute;
-			top: -20px;
-			left: 0;
-		}
-
-		.x-axis::after {
-			content: '10';
-			position: absolute;
-			top: -20px;
-			right: 0;
-		}
-
-		.y-axis {
-			grid-row: 1 / span 21;
-			width: 1px;
-			border-left: 2px solid black;
-			display: flex;
-			flex-direction: column;
-			align-items: center;
-			justify-content: space-between;
-			padding: 10px 0;
-			font-weight: bold;
-			font-size: 16px;
-			position: relative;
-		}
-
-		.y-axis::before {
-			content: '-10';
-			position: absolute;
-			bottom: 0;
-			left: -20px;
-		}
-
-		.y-axis::after {
-			content: '10';
-			position: absolute;
-			top: 0;
-			left: -20px;
-		}
-
-		.dot {
-			width: 20px;
-			height: 20px;
-			border-radius: 50%;
-			background-color: green;
-			position: absolute;
-		}
-
-		.ap .dot {
-			background-color: red;
-		}
-
-		.dot-text {
-			font-size: 12px;
-			font-weight: bold;
-			color: white;
-			display: flex;
-			align-items: center;
-			justify-content: center;
-			height: 100%;
-			width: 100%;
-		}
-	</style>
 </head>
-<body>	<div class="container">
-		<h1>Connected Devices</h1>
-		<table>
-			<thead>
-				<tr>
-					<th>Name</th>
-					<th>Time</th>
-					<th>Battery Percent</th>
-					<th>Available Storage</th>
-					<th>Total Memory</th>
-					<th>Available Memory</th>
-					<th>Position</th>
-					<th>Is AP</th>
-				</tr>
-			</thead>
-			<tbody>
-				{% for device in devices_data %}
-					<tr class="{% if device.is_ap %}ap{% endif %}">
-						<td>{{ device.name }}</td>
-						<td>{{ device.time }}</td>
-						<td>{{ device.battery_percent }}</td>
-						<td>{{ device.available_storage }}</td>
-						<td>{{ device.total_memory }}</td>
-						<td>{{ device.available_memory }}</td>
-						<td>{{ device.position.latitude }}, {{ device.position.longitude }}</td>
-						<td>{% if device.is_ap %}Yes{% else %}No{% endif %}</td>
-					</tr>
-				{% endfor %}
-			</tbody>
-		</table>
-		<div class="chart-container">
-			<div class="chart">
-				{% for device in devices_data %}
-					{% if device.position.latitude is defined and device.position.longitude is defined %}
-						<div class="dot" style="left: {{ (device.position.longitude|float + 10)/20*100 }}%; bottom: {{ (device.position.latitude|float + 10)/20*100 }}%;"></div>
-					{% endif %}
-				{% endfor %}
-				<div class="x-axis"></div>
-				<div class="y-axis"></div>
-				{% for i in range(-10, 11) %}
-					<div class="x-tick" style="left: {{ (i + 10)/20*100 }}%">{{ i }}</div>
-					<div class="y-tick" style="bottom: {{ (i + 10)/20*100 }}%">{{ i }}</div>
-				{% endfor %}
-			</div>
-		</div>
-	</div>
+<body>
+<div class="container">
+    <h1>Connected Devices</h1>
+    <table>
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Time</th>
+            <th>Battery Percent</th>
+            <th>Available Storage</th>
+            <th>Total Memory</th>
+            <th>Available Memory</th>
+            <th>Position</th>
+            <th>Is AP</th>
+        </tr>
+        </thead>
+        <tbody>
+        {% for device in devices_data %}
+        <tr class="{% if device.is_ap %}ap{% endif %}">
+            <td>{{ device.name }}</td>
+            <td>{{ device.time }}</td>
+            <td>{{ device.battery_percent }}</td>
+            <td>{{ device.available_storage }}</td>
+            <td>{{ device.total_memory }}</td>
+            <td>{{ device.available_memory }}</td>
+            <td>{{ device.position.latitude }}, {{ device.position.longitude }}</td>
+            <td>{% if device.is_ap %}Yes{% else %}No{% endif %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <div id="board-container">
+        <div id="letters" class="labels"></div>
+        <div id="numbers" class="labels"></div>
+        <div id="board"></div>
+    </div>
+
+</div>
+
 </body>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const devicesDataJS = {{ devices_data | tojson | safe }};
+        console.log(devicesDataJS);
+
+        const chessboard = document.getElementById("board");
+        const letters = document.getElementById("letters");
+        const numbers = document.getElementById("numbers");
+
+        function createLabels() {
+            for (let i = -5; i <= 5; i++) {
+                letters.innerHTML += `<span>${i}</span>`;
+            }
+            for (let i = 5; i >= -5; i--) {
+                numbers.innerHTML += `<span>${i}</span>`;
+            }
+        }
+
+        function createChessboard() {
+            for (let row = 1; row <= 11; row++) {
+                for (let col = 1; col <= 11; col++) {
+                    const square = document.createElement("button");
+                    square.classList.add("square");
+                    square.id = `square-${row}-${col}`;
+                    chessboard.appendChild(square);
+                }
+            }
+        }
+
+        function setColor(row, col, color, text) {
+          const square = document.getElementById(`square-${row}-${col}`);
+          if (square) {
+            square.style.backgroundColor = color;
+            square.innerText = text;
+          }
+        }
+
+        createLabels();
+        createChessboard();
+
+        devicesDataJS.forEach(device => {
+            const row = device.position.latitude + 6;
+            const col = device.position.longitude + 6;
+            const color = device.is_ap ? "red" : "green";
+            const text = device.name;
+            setColor(row, col, color, text);
+        });
+    });
+</script>
+
+
 </html>

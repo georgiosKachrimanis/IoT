@@ -1,6 +1,4 @@
 from flask import *
-import io
-import svgwrite
 from routes import status
 from routes.camera_control import start_camera, stop_camera
 from routes.server_control import start_server
@@ -121,8 +119,6 @@ def home():
             connected_devices_data = json.load(f)
             print(connected_devices_data)
     return render_template('index.html', devices_data=connected_devices_data)
-
-from flask import current_app
 
 
 @server.route('/download_file', methods=['POST'])
