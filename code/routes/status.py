@@ -66,9 +66,9 @@ def get_device_name():
 
 def new_coordinates():
     # Generate a random integer between 1 and 10 for the X coordinate
-    y = random.randint(-10, 10)
+    y = random.randint(-5, 5)
     # Generate a random uppercase letter between A and J for the Y coordinate
-    x = random.randint(-10, 10)
+    x = random.randint(-5, 5)
     return x, y
 
 
@@ -108,7 +108,7 @@ def create_json_data_file():
     mem = mem_usage()
 
     # Position variables
-    lat, lon = coordinates
+    lat, lon = new_coordinates()
 
     # Store the information, the size of memory and storage is in MBytes
     data['name'] = hostname

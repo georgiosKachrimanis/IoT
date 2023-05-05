@@ -197,8 +197,8 @@
         createChessboard();
 
         devicesDataJS.forEach(device => {
-            const row = device.position.latitude + 6;
-            const col = device.position.longitude + 6;
+            const row = (-1) * device.position.longitude + 6; // So we can have the correct coordinates
+            const col = device.position.latitude + 6;
             const color = device.is_ap ? "red" : "green";
             const text = device.name;
             setColor(row, col, color, text);
