@@ -18,9 +18,6 @@ def start_flask_app():
 flask_thread = threading.Thread(target=start_flask_app)
 flask_thread.start()
 print('Flask app is running!')
-
-# Create  the devices details
-create_json_data_file()
 local_host = get_device_name()
 
 
@@ -50,8 +47,9 @@ def bandwidth_control():
 
 
 def main():
-    while True:
 
+    while True:
+        create_json_data_file()
         if is_rpi_ap():
             print(f"RPi {hostname} is in AP mode")
             # Get the data of the connected devices

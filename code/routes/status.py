@@ -7,13 +7,18 @@ import random
 import os
 import requests
 
-# Starting values of location and battery and AP Bandwidth with the server
-coordinates = 5, 7
+
 battery = 100
 bandwidth = 100
 
 
 def is_rpi_ap():
+    """
+    Check if the Raspberry Pi is currently acting as an access point.
+
+    Returns:
+        bool: True if the Pi is an access point, False otherwise.
+    """
     # Get the IP address of the Raspberry Pi's wlan0 interface
     cmd = "ip addr show wlan0 | grep 'inet ' | awk '{print $2}' | cut -d/ -f1"
     ip_address = subprocess.check_output(cmd, shell=True).decode().strip()
@@ -26,6 +31,12 @@ def is_rpi_ap():
 
 
 def devices():
+    """
+    Get a list of connected devices to the Raspberry Pi.
+
+    Returns:
+        list: A list of connected device hostnames.
+    """
     # get the list of connected devices
     connected_devices = subprocess.check_output(['sudo', 'arp', '-a', '-i', 'wlan0']).decode().split('\n')
 
@@ -40,6 +51,15 @@ def devices():
 
 
 def is_server_active(url):
+    """
+    Check if a server is active by attempting to send a GET request to it.
+
+    Args:
+        url (str): The URL of the server to check.
+
+    Returns:
+        bool: True if the server is active, False otherwise.
+    """
     try:
         response = requests.get(url)
         if response.status_code == 200:
@@ -52,27 +72,81 @@ def is_server_active(url):
 
 
 def disk_space():
+    """
+    Get the amount of available disk space on the Raspberry Pi.
+
+    Returns:
+        int: The amount of available disk space in bytes.
+    """
     disk_usage = psutil.disk_usage('/')
     return disk_usage.free
 
 
 def mem_usage():
+    """
+    Get the amount of available memory on the Raspberry Pi.
+
+    Returns:
+        tuple: A tuple containing the total and available memory in bytes.
+    """
     return psutil.virtual_memory()
 
 
 def get_device_name():
+    """
+    Get the hostname of the Raspberry Pi.
+
+    Returns:
+        str: The hostname of the Raspberry Pi.
+    """
     return socket.gethostname()
 
 
+def next_coordinates(device_list):
+    """
+    Generate a sequence of coordinates from a given list of coordinates.
+
+    Args:
+        device_list (list): A list of coordinates.
+
+    Yields:
+        tuple: A tuple containing the next set of coordinates from the list.
+    """
+    i = 0
+    while True:
+        yield device_list[i]
+        i = (i + 1) % len(device_list)
+
+
 def new_coordinates():
-    # Generate a random integer between 1 and 10 for the X coordinate
-    y = random.randint(-5, 5)
-    # Generate a random uppercase letter between A and J for the Y coordinate
-    x = random.randint(-5, 5)
+    """
+    Generate a new set of coordinates for the Raspberry Pi based on its hostname.
+
+    Returns:
+        tuple: A tuple containing the latitude and longitude of the new coordinates.
+    """
+    name = get_device_name()
+    if name not in generators:
+        raise ValueError("Invalid device name")
+    x, y = next(generators[name])
     return x, y
 
 
+# Create a dictionary to hold the generator objects for each device
+pi2 = [(0, 0), (2, 0), (2, -1), (4, 0), (5, -2), (3, -4), (0, -2), (0, -2), (-2, -1), (1, -1), (2, 0)]
+pi3 = [(0, 0), (3, 0), (1, 2), (3, 2), (1, 3), (-1, 1), (-1, 1), (-4, 3), (-1, 5), (2, 3), (5, 1)]
+pi4 = [(0, 0), (1, 0), (1, 0), (2, 0), (4, 1), (4, -1), (5, -5), (1, -5), (-1, -3), (1, -2), (-1, 0)]
+
+generators = {"pi2": next_coordinates(pi2), "pi3": next_coordinates(pi3), "pi4": next_coordinates(pi4)}
+
+
 def get_wifi_network():
+    """
+    Returns the name of the currently connected WiFi network.
+
+    Returns:
+    str: The name of the currently connected WiFi network.
+    """
     # Run the iwconfig command and capture the output
     output = subprocess.check_output(['iwgetid', '-r'])
 
@@ -82,12 +156,24 @@ def get_wifi_network():
 
 
 def new_battery():
+    """
+    Returns a random integer between 1 and 100 to simulate battery level.
+
+    Returns:
+    int: A random integer between 1 and 100 to simulate battery level.
+    """
     # Generate a random integer between 1 and 100 for the battery charge
     updated_battery = random.randint(1, 100)
     return updated_battery
 
 
 def check_wifi_connection():
+    """
+    Checks if the Raspberry Pi is currently connected to a WiFi network.
+
+    Returns:
+    bool: True if the Raspberry Pi is connected to a WiFi network, False otherwise.
+    """
     try:
         subprocess.check_output(['iwgetid'])
         return True
@@ -96,6 +182,13 @@ def check_wifi_connection():
 
 
 def create_json_data_file():
+    """
+    Creates a JSON data file with information about the Raspberry Pi, including its name, battery level,
+    available storage, available memory, position, and whether or not it is an access point.
+
+    Returns:
+    str: The file path of the JSON data file that was created.
+    """
     # Create a dictionary to hold the data
     data = {}
 
@@ -131,6 +224,12 @@ def create_json_data_file():
 
 
 def download():
+    """
+    Downloads the data files of connected Raspberry Pis from their respective servers, and saves them to the local machine.
+
+    Returns:
+    str: A message indicating whether the download was successful or not.
+    """
     client_ips = devices()
     # get the server IP address and file path from the request form
     for i in client_ips:
@@ -155,7 +254,19 @@ def download():
 
 
 def download_file(url, file_path):
-    create_json_data_file()
+    """
+    Downloads a file from the given URL and saves it to the specified file path.
+
+    Args:
+        url (str): The URL to download the file from.
+        file_path (str): The path to save the downloaded file.
+
+    Returns:
+        str: The path of the downloaded file.
+
+    Raises:
+        requests.exceptions.RequestException: If an error occurs while downloading the file.
+    """
     response = requests.get(url, stream=True)
     with open(file_path, 'wb') as f:
         for chunk in response.iter_content(chunk_size=1024):
@@ -168,4 +279,7 @@ def download_file(url, file_path):
 
 
 def shutdown():
+    """
+    Shuts down the Raspberry Pi.
+    """
     subprocess.run(['sudo', 'shutdown', '-h', 'now'])

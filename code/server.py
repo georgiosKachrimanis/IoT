@@ -6,7 +6,7 @@ from routes.status import *
 import requests
 
 server = Flask(__name__)
-status.create_json_data_file()
+
 hostname = status.get_device_name()
 available = True
 previous_state = ''
@@ -156,8 +156,6 @@ def serve_file(file_path):
     Returns:
         The requested file as an attachment.
     """
-
-    create_json_data_file()
     try:
         return send_file(file_path, as_attachment=True)
     except Exception as e:
@@ -235,5 +233,4 @@ def update_bandwidth():
 
 # Start the server on all network interfaces
 if __name__ == '__main__':
-    status.create_json_data_file()
     server.run(debug=True, host='0.0.0.0')
