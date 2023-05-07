@@ -4,6 +4,7 @@ from routes.camera_control import start_camera, stop_camera
 from routes.server_control import start_server
 from routes.status import *
 import requests
+from werkzeug.utils import secure_filename
 
 server = Flask(__name__)
 
@@ -117,7 +118,6 @@ def home():
     if os.path.exists(f'/home/{hostname}/Desktop/code/data/connected_devices.json'):
         with open(f'/home/{hostname}/Desktop/code/data/connected_devices.json', 'r') as f:
             connected_devices_data = json.load(f)
-            print(connected_devices_data)
     return render_template('index.html', devices_data=connected_devices_data)
 
 
@@ -196,6 +196,18 @@ def server_status(user):
 
     response = send_request('http://' + user + '.local:5000/')
     return render_template('start_server.html', response=response)
+
+
+@server.route('/receive-connected-devices', methods=['POST', 'GET'])
+def receive_connected_devices():
+    file = request.files.get('file')
+    if file:
+        filename = secure_filename(file.filename)
+        file.save(filename)
+        print(f"Received file '{filename}'")
+        return 'Success'
+    else:
+        return 'Error'
 
 
 @server.route('/end', methods=['GET'])

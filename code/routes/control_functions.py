@@ -1,8 +1,11 @@
-
-from flask import render_template
-from .status import devices, get_device_name
+import requests
+from flask import *
+from .status import *
 import json
 import os
+
+name = get_device_name()
+connected_devices = devices()
 
 
 def control_panel():
@@ -45,17 +48,35 @@ def create_devices_file():
                          - 'location': the location of the device
                          - 'battery': the remaining battery of the device
     """
-    name = get_device_name()
     folder_path = f'/home/{name}/Desktop/code/data'
     devices_data = []
     for file_name in os.listdir(folder_path):
 
         if file_name.endswith('data.json'):
             file_path = os.path.join(folder_path, file_name)
-
             devices_data.append(read_device_data(file_path))
 
     filename = f'/home/{name}/Desktop/code/data/connected_devices.json'
     with open(filename, 'w') as f:
         json.dump(devices_data, f)
+
+
+def receive_connected_devices():
+
+    access_point = get_wifi_network()
+    server_url = f'http://{access_point}@{access_point}.local:5000/'
+    file_path = '/data/connected_devices.json'
+
+    if is_server_active(server_url):
+        url = f'{server_url}download/{file_path}'
+        local_file_path = f'/home/{name}/Desktop/code/data/connected_devices.json'
+        try:
+            download_file(url, local_file_path)
+            print(f"The data file from {access_point} is added.")
+        except requests.exceptions.RequestException as e:
+            print(f"Error downloading file from {access_point}: {e}")
+    else:
+        print(f'The server on {access_point} is not reachable')
+
+
 

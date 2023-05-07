@@ -7,6 +7,7 @@ import time
 from server import *
 from routes import status, control_functions
 from routes.status import *
+from routes.control_functions import *
 
 
 def start_flask_app():
@@ -57,17 +58,19 @@ def main():
             # Check the available bandwidth with the Cloud Server and
             bandwidth_control()
             control_functions.create_devices_file()
-
+            time.sleep(15)  # To keep up with the clients
 
         elif check_wifi_connection():
 
+            time.sleep(15)  # In order to be sure that the AP have processed the data
+            control_functions.receive_connected_devices()
             # Here we will create the commands to check start the camera automatically
             print(f"Rpi {hostname} is connected to {get_wifi_network()}")
         else:
             # Here we will create the commands to stop broadcasting and try to create a new AP
             # (If we have time we can also check the option to return to another network)
             print("Rpi is in another state.")
-        time.sleep(60)
+        time.sleep(45)
 
 
 main()
