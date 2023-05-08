@@ -3,6 +3,7 @@ from routes import status
 from routes.camera_control import start_camera, stop_camera
 from routes.server_control import start_server
 from routes.status import *
+from revert_AP_client import *
 import requests
 from werkzeug.utils import secure_filename
 
@@ -222,6 +223,15 @@ def end():
         A message indicating that the server has been shut down.
     """
     return shutdown()
+
+
+@server.route('/revert-to-ap', methods=['GET', 'POST'])
+def revert_to_ap():
+    try:
+        revert_AP()
+        return 'Successfully reverted to access point mode.'
+    except Exception as e:
+        return f'Error: {str(e)}'
 
 
 @server.route('/update_bandwidth', methods=['POST', 'GET'])

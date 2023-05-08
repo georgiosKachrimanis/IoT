@@ -4,9 +4,9 @@
 import threading
 import time
 
+from revert_AP_client import *
 from server import *
 from routes import status, control_functions
-from routes.status import *
 from routes.control_functions import *
 
 
@@ -55,9 +55,29 @@ def main():
             print(f"RPi {hostname} is in AP mode")
             # Get the data of the connected devices
             download()
-            # Check the available bandwidth with the Cloud Server and
-            bandwidth_control()
+            # Create the data for the connected devices
             control_functions.create_devices_file()
+            # Calculate if the device should be AP
+            if not check_next_AP():
+                print(f"{local_host} is still the AP")
+            else:
+                print("Another Device is the new AP")
+
+                # # We will ask the 1st item on the list to become the new AP then the RPi will revert to client mode.
+                # next_AP = sorted_totals[0]['name']
+                # url = f'http://{next_AP}@{next_AP}:5000/revert_AP()'
+                # revert_to_client_mode()
+
+            # Here we will check if the AP should be the AP if not then another one will get to be AP.
+
+            time.sleep(15)  # To keep up with the clients
+
+
+            # 2nd we are calculating which device is closer to the Cloud
+            # code will go here, the code should get the data from the created_devices_file()
+
+            # Check the available bandwidth with the Cloud Server and
+            # bandwidth_control()
             time.sleep(15)  # To keep up with the clients
 
         elif check_wifi_connection():

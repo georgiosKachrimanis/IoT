@@ -1,6 +1,4 @@
 import os
-import time
-
 
 # Get the username of the current user
 username = os.getlogin()
