@@ -190,10 +190,11 @@ def check_next_AP():
     print(sorted_totals)
 
     if sorted_totals:
-        first_device_name = next(iter(sorted_totals))
-        if first_device_name != 'local_host':
-            print(f"The first device is {first_device_name}")
-            return False
-        else:
+        first_device_name = next(iter(sorted_totals.keys()))
+        print(first_device_name)
+        if first_device_name == local_host:
             print(f"The {local_host} is also the {first_device_name}")
             return True
+        else:
+            print(f"The new AP is {first_device_name}")
+            return False

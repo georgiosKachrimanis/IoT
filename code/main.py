@@ -58,7 +58,7 @@ def main():
             # Create the data for the connected devices
             control_functions.create_devices_file()
             # Calculate if the device should be AP
-            if not check_next_AP():
+            if check_next_AP():
                 print(f"{local_host} is still the AP")
             else:
                 print("Another Device is the new AP")
