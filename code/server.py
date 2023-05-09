@@ -14,7 +14,7 @@ available = True
 previous_state = ''
 
 
-@server.route('/camera', methods=['GET', 'POST'])
+@server.route('/camera_requests', methods=['GET', 'POST'])
 def camera():
 
     clients = status.devices()
@@ -22,14 +22,16 @@ def camera():
     success = False
     if command['action'] == 'start':
         message = {'message': 'start_camera'}
-    elif command['action'] == 'stop':
+    elif command['action'] == 'stop_broadcasting':
         message = {'message': 'stop_broadcasting'}
+    elif command['action'] == 'start_broadcasting':
+        message = {'message': 'start_broadcasting'}
     else:
-        message = {'message': 'No Idea'}
+        message = {'message': 'no_change'}
 
     for client in clients:
         print(f'Trying to send request to connected device {client}')
-        url = f'http://{client}@{client}:5000/camera_controls'
+        url = f'http://{client}@{client}:5000/camera_handler'
         server_url = f'http://{client}@{client}:5000/'
         # Extra code to avoid issues
         if is_server_active(server_url):
@@ -48,12 +50,7 @@ def camera():
         return jsonify({'success': False})
 
 
-@server.route('/connected')
-def http_devices():
-    return http_devices()
-
-
-@server.route('/camera_controls', methods=['POST'])
+@server.route('/camera_handler', methods=['POST'])
 def camera_handler():
     """
     This function handles the 'start_camera' and 'stop_camera' messages received from
@@ -79,6 +76,14 @@ def camera_handler():
         # Start the camera function and start broadcasting
         print(f"Starting camera... the previous state was {previous_state}")
         previous_state = message
+    elif message == 'start_broadcasting' and previous_state != message:
+        # Start again the broadcasting function
+        previous_state = message
+        print(f"Starting camera broadcasting... the previous state was {previous_state}")
+    elif message == 'stop_broadcasting' and previous_state != message:
+        # Stop broadcasting video
+        previous_state = message
+        print(f"Stop camera broadcasting... the previous state was {previous_state}")
     elif message == 'stop_camera' and previous_state != message:
         # Stop the broadcasting function
         previous_state = message
@@ -136,9 +141,26 @@ def download():
     status.download()
 
 
-@server.route('/start_server/<hostname>', methods=['POST'])
-def start_server_from_home(hostname):
-    start_server(hostname)
+@server.route('/revert_to_ap', methods=['POST', 'GET'])
+def revert_to_ap():
+    print(f"The new AP is applied i think")
+    return f"Successssss  {hostname}"
+    # try:
+    #     revert_ap_mode()
+    #     return 'Successfully reverted to access point mode.'
+    # except Exception as e:
+    #     return f'Error: {str(e)}'
+    #
+
+@server.route('/revert_to_client', methods=['POST', 'GET'])
+def revert_to_client():
+    return f"Success reverting to client {hostname}"
+
+    # try:
+    #     revert_to_client_mode()
+    #     return 'Successfully reverted to clien mode.'
+    # except Exception as e:
+    #     return f'Error: {str(e)}'
 
 
 def send_request(url):
@@ -163,40 +185,40 @@ def serve_file(file_path):
         return str(e)
 
 
-@server.route('/data')
-def data():
-    """
-    Reads data from a JSON file and renders it on a web page.
+# @server.route('/data')
+# def data():
+#     """
+#     Reads data from a JSON file and renders it on a web page.
+#
+#     Args:
+#         None.
+#
+#     Returns:
+#         A rendered HTML template containing the data from the JSON file.
+#     """
+#
+#     # read the JSON file
+#     with open(f'/home/{hostname}/Desktop/code/data/data.json') as f:
+#         information = json.load(f)
+#
+#     # render the data template with the data
+#     return render_template('data.html', data=information)
 
-    Args:
-        None.
 
-    Returns:
-        A rendered HTML template containing the data from the JSON file.
-    """
-
-    # read the JSON file
-    with open(f'/home/{hostname}/Desktop/code/data/data.json') as f:
-        information = json.load(f)
-
-    # render the data template with the data
-    return render_template('data.html', data=information)
-
-
-@server.route('/status/<hostname>', methods=['GET'])
-def server_status(user):
-    """
-    Retrieves the status of a specified server.
-
-    Args:
-        user (str): The name of the server to retrieve the status of.
-
-    Returns:
-        A rendered HTML template containing the status information of the specified server.
-    """
-
-    response = send_request('http://' + user + '.local:5000/')
-    return render_template('start_server.html', response=response)
+# @server.route('/status/<hostname>', methods=['GET'])
+# def server_status(user):
+#     """
+#     Retrieves the status of a specified server.
+#
+#     Args:
+#         user (str): The name of the server to retrieve the status of.
+#
+#     Returns:
+#         A rendered HTML template containing the status information of the specified server.
+#     """
+#
+#     response = send_request('http://' + user + '.local:5000/')
+#     return render_template('start_server.html', response=response)
 
 
 @server.route('/receive-connected-devices', methods=['POST', 'GET'])
@@ -223,15 +245,6 @@ def end():
         A message indicating that the server has been shut down.
     """
     return shutdown()
-
-
-@server.route('/revert-to-ap', methods=['GET', 'POST'])
-def revert_to_ap():
-    try:
-        revert_AP()
-        return 'Successfully reverted to access point mode.'
-    except Exception as e:
-        return f'Error: {str(e)}'
 
 
 @server.route('/update_bandwidth', methods=['POST', 'GET'])

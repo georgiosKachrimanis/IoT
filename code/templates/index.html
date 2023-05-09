@@ -5,14 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" href="static/style.css">
-    <title>Connected Devices</title>
-
-
+    <title>Devices</title>
 
 </head>
 <body>
 <div class="container">
-    <h1>Connected Devices</h1>
+    <h1>Devices</h1>
     <table>
         <thead>
         <tr>
@@ -28,7 +26,7 @@
         </thead>
         <tbody>
         {% for device in devices_data %}
-        <tr class="{% if device.is_ap %}ap{% endif %}">
+        <tr class="{% if device.is_ap %}ap{% else %}not-ap{% endif %}">
             <td>{{ device.name }}</td>
             <td>{{ device.time }}</td>
             <td>{{ device.battery_percent }}</td>
@@ -41,11 +39,13 @@
         {% endfor %}
         </tbody>
     </table>
-    <div id="board-container">
-        <div id="letters" class="labels"></div>
-        <div id="numbers" class="labels"></div>
-        <div id="board"></div>
-    </div>
+<div id="board-container">
+    <div id="background"></div>
+    <div id="board"></div>
+    <div id="letters"></div>
+    <div id="numbers"></div>
+</div>
+
 
 </div>
 
@@ -79,13 +79,16 @@
             }
         }
 
-        function setColor(row, col, color, text) {
-          const square = document.getElementById(`square-${row}-${col}`);
-          if (square) {
-            square.style.backgroundColor = color;
-            square.innerText = text;
-          }
-        }
+function setColor(row, col, color, text) {
+    const square = document.getElementById(`square-${row}-${col}`);
+    if (square) {
+        const circle = document.createElement('div');
+        circle.classList.add('circle');
+        circle.style.backgroundColor = color;
+        circle.innerText = text;
+        square.appendChild(circle);
+    }
+}
 
         createLabels();
         createChessboard();

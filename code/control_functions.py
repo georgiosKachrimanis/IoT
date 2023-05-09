@@ -1,8 +1,11 @@
 import math
 from flask import *
-from .status import *
+from routes.status import *
+from server import *
+from revert_AP_client import *
 import json
 import os
+
 
 local_host = get_device_name()
 connected_devices = devices()
@@ -62,7 +65,6 @@ def create_devices_file():
 
 
 def receive_connected_devices():
-
     access_point = get_wifi_network()
     server_url = f'http://{access_point}@{access_point}.local:5000/'
     file_path = '/data/connected_devices.json'
@@ -184,8 +186,19 @@ def extract_devices():
 
 
 def check_next_AP():
-    devices = extract_devices()
-    devices_totals = calculate_distances(devices)
+    """
+    Determines the next Access Point (AP) device based on the distances between all devices,
+    and updates the status of the devices in the 'connected_devices.json' file.
+
+    Returns:
+        - True if the current device is still an AP
+        - False if a new device has become an AP
+
+    Raises:
+        - ValueError: If the current device is not found in the 'connected_devices.json' file
+        or if there is an error updating the file.
+    """
+    devices_totals = calculate_distances(extract_devices())
     sorted_totals = dict(sorted(devices_totals.items(), key=lambda item: item[1]))
     print(sorted_totals)
 
@@ -193,8 +206,74 @@ def check_next_AP():
         first_device_name = next(iter(sorted_totals.keys()))
         print(first_device_name)
         if first_device_name == local_host:
-            print(f"The {local_host} is also the {first_device_name}")
+            print(f"The {local_host} is still AP, there will be no changes")
             return True
         else:
+            # Update of the status of the new AP
+            update_device_data(local_host, False)
+            update_device_data(first_device_name, True)
+            change_ap(first_device_name)
             print(f"The new AP is {first_device_name}")
             return False
+
+
+def change_ap(new_ap):
+    """
+    Sends a request to the server of the specified device to change the access point (AP).
+
+    Args:
+        new_ap (str): The name of the device that will become the new AP.
+
+    Returns:
+        None: The function does not return anything.
+
+    Raises:
+        requests.exceptions.HTTPError: If the request to the server returns an error response.
+        requests.exceptions.RequestException: If the request to the server fails for any other reason.
+    """
+
+    url = f'http://{new_ap}@{new_ap}:5000/revert_to_ap'
+
+    print(requests.post(url))
+    print(revert_to_client())
+
+
+def update_device_data(device_name, is_ap):
+    """
+    Update the device data JSON file to set the "is_ap" value for the specified device.
+
+    Args:
+    - device_name (str): The name of the device to update.
+    - is_ap (bool): The new value of the "is_ap" key.
+
+    Raises:
+    - FileNotFoundError: If the device data JSON file cannot be found.
+    - ValueError: If the specified device name is not found in the JSON data.
+    - KeyError: If the JSON data is not in the expected format.
+    """
+    # Load the device data JSON file
+    file_path = f"/home/{local_host}/Desktop/code/data/connected_devices.json"
+    try:
+        with open(file_path) as f:
+            data = json.load(f)
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Device data file '{file_path}' not found.")
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Error decoding JSON data in file '{file_path}': {e}")
+
+    # Update the "is_ap" value for the specified device
+
+    for device in data:
+        if device["name"] == device_name:
+            device["is_ap"] = is_ap
+
+            break
+    else:
+        raise ValueError(f"Device '{device_name}' not found in JSON data.")
+
+    # Save the updated data back to the JSON file
+    try:
+        with open(file_path, "w") as f:
+            json.dump(data, f)
+    except Exception as e:
+        raise ValueError(f"Error writing updated data to file '{file_path}': {e}")

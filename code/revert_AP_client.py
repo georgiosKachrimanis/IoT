@@ -2,12 +2,12 @@ import subprocess
 from pathlib import Path
 import os
 
-# Enable hostapd service
-subprocess.run(['sudo', 'systemctl', 'unmask', 'hostapd'], check=True)
-subprocess.run(['sudo', 'systemctl', 'enable', 'hostapd'], check=True)
 
+def revert_ap_mode():
+    # Enable hostapd service
+    subprocess.run(['sudo', 'systemctl', 'unmask', 'hostapd'], check=True)
+    subprocess.run(['sudo', 'systemctl', 'enable', 'hostapd'], check=True)
 
-def revert_AP():
     # Backup the original dhcpcd.conf file and configure the static IP
     if Path('/etc/dhcpcd.conf').exists():
         subprocess.run(['sudo', 'cp', '/etc/dhcpcd.conf', '/etc/dhcpcd.conf.orig'])
