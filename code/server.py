@@ -3,7 +3,7 @@ from routes import status
 from routes.camera_control import start_camera, stop_camera
 from routes.server_control import start_server
 from routes.status import *
-from revert_AP_client import *
+from revert_ap_client_mode import *
 import requests
 from werkzeug.utils import secure_filename
 
@@ -143,24 +143,17 @@ def download():
 
 @server.route('/revert_to_ap', methods=['POST', 'GET'])
 def revert_to_ap():
-    print(f"The new AP is applied i think")
-    return f"Successssss  {hostname}"
-    # try:
-    #     revert_ap_mode()
-    #     return 'Successfully reverted to access point mode.'
-    # except Exception as e:
-    #     return f'Error: {str(e)}'
-    #
+    revert_to_ap_mode()
+
 
 @server.route('/revert_to_client', methods=['POST', 'GET'])
 def revert_to_client():
-    return f"Success reverting to client {hostname}"
 
-    # try:
-    #     revert_to_client_mode()
-    #     return 'Successfully reverted to clien mode.'
-    # except Exception as e:
-    #     return f'Error: {str(e)}'
+    try:
+        revert_to_client_mode()
+        return f'{hostname} successfully reverted to client mode.'
+    except Exception as e:
+        return f'Error: {str(e)}'
 
 
 def send_request(url):
@@ -223,13 +216,23 @@ def serve_file(file_path):
 
 @server.route('/receive-connected-devices', methods=['POST', 'GET'])
 def receive_connected_devices():
-    file = request.files.get('file')
-    if file:
-        filename = secure_filename(file.filename)
-        file.save(filename)
-        print(f"Received file '{filename}'")
-        return 'Success'
-    else:
+    """
+    Receives a file containing information about connected devices at the AP and saves it in the local machine.
+
+    Returns:
+    - (str): 'Success' if the file was successfully received and saved, 'Error' otherwise.
+    """
+    try:
+        file = request.files.get('file')
+        if file:
+            filename = secure_filename(file.filename)
+            file.save(filename)
+            print(f"Received file '{filename}'")
+            return 'Success'
+        else:
+            raise ValueError("No file received.")
+    except Exception as e:
+        print(f"Error receiving connected devices file: {e}")
         return 'Error'
 
 

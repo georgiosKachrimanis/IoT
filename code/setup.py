@@ -80,13 +80,13 @@ def create_dnsmasq(user):
     pi_number = get_pi_number(user)
 
     # Set the DHCP range based on the username number the range is from 2-250 you can adjust to desired
-    dhcp_range = f"192.168.{pi_number}.2,192.168.{pi_number}.250,255.255.255.0,24h"
+    dhcp_range = f"192.168.{pi_number}.2,192.168.{pi_number}.200,255.255.255.0,24h"
 
     os.system("sudo apt install dnsmasq -y")
     print("Installation of dnsmasq was successful")
 
     # Set the static IP address for the specific laptop
-    static_ip = f"192.168.{pi_number}.201"
+    static_ip = f"192.168.{pi_number}.200"
 
     # Replace the MAC_ADDRESS with the actual MAC address of your laptop
     mac_address = "50:ed:3c:34:6e:f7"
@@ -187,7 +187,7 @@ def adjust_wpa_range(user):
     # Define the parameters all of those parameters should be adjusted depending on your swarm size and location
     country_code = "NL" # You should change to the appropriate country you are using the swarm
     password = "helloErgasia" # This will be the password for the Wi-Fi
-    ssid_range = range(2, 100) # The amount of AP you are going to have
+    ssid_range = range(2, 199) # The amount of AP you are going to have
     pi_number = get_pi_number(user)
 
     # Create the base content of the wpa_supplicant.conf file

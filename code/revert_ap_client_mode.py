@@ -3,7 +3,7 @@ from pathlib import Path
 import os
 
 
-def revert_ap_mode():
+def revert_to_ap_mode():
     # Enable hostapd service
     subprocess.run(['sudo', 'systemctl', 'unmask', 'hostapd'], check=True)
     subprocess.run(['sudo', 'systemctl', 'enable', 'hostapd'], check=True)

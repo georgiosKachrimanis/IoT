@@ -3,6 +3,7 @@
 #
 import threading
 import time
+from Device import Device
 
 from server import *
 from routes import status
@@ -47,30 +48,56 @@ def bandwidth_control():
 
 
 def main():
-
+    # Create an instance of the Device
+    local_device = Device()
+    count = 0
     while True:
+        # Create a json file of the local device
         create_json_data_file()
-        if is_rpi_ap():
-            print(f"RPi {hostname} is in AP mode")
+
+        # check the status of the device and act accordingly
+        if local_device.mode == 'ap':
+            print(f"{local_device.name} is in AP mode")
             # Get the data of the connected devices
             download()
             # Create the data for the connected devices
             create_devices_file()
-            # Calculate if the device should be AP
+            # Calculate which device should be AP
             check_next_AP()
-            time.sleep(15)  # To keep up with the clients
-
+            print(f"The new AP is calculated")
+            # wait some time so all the devices can ge the data
+            time.sleep(15)
         elif check_wifi_connection():
-
-            time.sleep(15)  # In order to be sure that the AP have processed the data
+            print(f"{local_device.name} is connected to {get_wifi_network()}")
+            # In order to be sure that the AP have processed the data
+            time.sleep(15)
             receive_connected_devices()
-            # Here we will create the commands to check start the camera automatically
-            print(f"Rpi {hostname} is connected to {get_wifi_network()}")
+            print("Connected devices are received this is " + local_device.name)
         else:
             # Here we will create the commands to stop broadcasting and try to create a new AP
             # (If we have time we can also check the option to return to another network)
+            count += 1
             print("Rpi is in another state.")
-        time.sleep(45)
+            if count % 2 == 0:
+                local_device.set_mode('ap')
 
+        if local_device.is_device_ap():
+            print(f"Start now! \n{local_device} is AP++++++++++++++++++")
+            local_device.set_mode('ap')
+
+        else:
+            print(f"We are at the last if else \n{local_device} is CLIENT-----------------------------")
+            local_device.set_mode('client')
+
+        if local_device.mode == 'ap' and local_device.is_ap:
+            print("no changes")
+        elif local_device.mode == 'client' and local_device.is_ap:
+            revert_to_client_mode()
+        elif local_device.mode == 'client' and not local_device.is_ap:
+            print("no changes")
+        else:
+            revert_to_ap_mode()
+
+        time.sleep(45)
 
 main()

@@ -206,7 +206,7 @@ def create_json_data_file():
     # Store the information, the size of memory and storage is in MBytes
     data['name'] = hostname
     data['time'] = datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')
-    data['battery_percent'] = battery
+    data['battery_percent'] = new_battery()
     data['available_storage'] = round(available_storage / 1024 / 1024, 2)
     data['total_memory'] = round(mem.total / 1024 / 1024, 2)
     data['available_memory'] = round(mem.available / 1024 / 1024, 2)

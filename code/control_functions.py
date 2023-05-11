@@ -2,7 +2,7 @@ import math
 from flask import *
 from routes.status import *
 from server import *
-from revert_AP_client import *
+from revert_ap_client_mode import *
 import json
 import os
 
@@ -200,21 +200,17 @@ def check_next_AP():
     """
     devices_totals = calculate_distances(extract_devices())
     sorted_totals = dict(sorted(devices_totals.items(), key=lambda item: item[1]))
-    print(sorted_totals)
 
     if sorted_totals:
         first_device_name = next(iter(sorted_totals.keys()))
-        print(first_device_name)
         if first_device_name == local_host:
             print(f"The {local_host} is still AP, there will be no changes")
-            return True
         else:
             # Update of the status of the new AP
             update_device_data(local_host, False)
             update_device_data(first_device_name, True)
-            change_ap(first_device_name)
-            print(f"The new AP is {first_device_name}")
-            return False
+            print(f"The new AP is going to be {first_device_name}")
+
 
 
 def change_ap(new_ap):
@@ -233,9 +229,10 @@ def change_ap(new_ap):
     """
 
     url = f'http://{new_ap}@{new_ap}:5000/revert_to_ap'
+    requests.post(url)
 
-    print(requests.post(url))
-    print(revert_to_client())
+    print("Now we have to change to client")
+    revert_to_client_mode()
 
 
 def update_device_data(device_name, is_ap):
