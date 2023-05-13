@@ -1,7 +1,7 @@
 from flask import *
 from routes import status
 from routes.camera_control import start_camera, stop_camera
-from routes.server_control import start_server
+from control_functions import *
 from routes.status import *
 from revert_ap_client_mode import *
 import requests
@@ -143,6 +143,8 @@ def download():
 
 @server.route('/revert_to_ap', methods=['POST', 'GET'])
 def revert_to_ap():
+    print("I hope it will revert to AP...")
+    count_down()
     revert_to_ap_mode()
 
 
@@ -213,6 +215,10 @@ def serve_file(file_path):
 #     response = send_request('http://' + user + '.local:5000/')
 #     return render_template('start_server.html', response=response)
 
+@server.route('/update_device_mode', methods=['POST', 'GET'])
+def update_device_mode():
+
+    return jsonify({'message': 'Device mode updated'})
 
 @server.route('/receive-connected-devices', methods=['POST', 'GET'])
 def receive_connected_devices():

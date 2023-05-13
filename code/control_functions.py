@@ -5,7 +5,7 @@ from server import *
 from revert_ap_client_mode import *
 import json
 import os
-
+import time
 
 local_host = get_device_name()
 connected_devices = devices()
@@ -185,7 +185,7 @@ def extract_devices():
     return devices_dictionary
 
 
-def check_next_AP():
+def calculate_next_AP():
     """
     Determines the next Access Point (AP) device based on the distances between all devices,
     and updates the status of the devices in the 'connected_devices.json' file.
@@ -203,36 +203,47 @@ def check_next_AP():
 
     if sorted_totals:
         first_device_name = next(iter(sorted_totals.keys()))
+        update_device_data(first_device_name, 'is_ap')
         if first_device_name == local_host:
             print(f"The {local_host} is still AP, there will be no changes")
+            return first_device_name
         else:
+            print(f"The {first_device_name} will be the new AP+++++++++")
             # Update of the status of the new AP
-            update_device_data(local_host, False)
-            update_device_data(first_device_name, True)
-            print(f"The new AP is going to be {first_device_name}")
+            return first_device_name
 
 
+# def send_update_device_mode_request(host):
+#     url = "http://host@host:5000/update_device_mode"  # Replace with your Flask server URL
+#     try:
+#         response = requests.post(url)
+#         response.raise_for_status()
+#         print("Request sent successfully.")
+#     except requests.exceptions.HTTPError as e:
+#         print("HTTP error:", e)
+#     except requests.exceptions.RequestException as e:
+#         print("Request error:", e)
 
-def change_ap(new_ap):
-    """
-    Sends a request to the server of the specified device to change the access point (AP).
-
-    Args:
-        new_ap (str): The name of the device that will become the new AP.
-
-    Returns:
-        None: The function does not return anything.
-
-    Raises:
-        requests.exceptions.HTTPError: If the request to the server returns an error response.
-        requests.exceptions.RequestException: If the request to the server fails for any other reason.
-    """
-
-    url = f'http://{new_ap}@{new_ap}:5000/revert_to_ap'
-    requests.post(url)
-
-    print("Now we have to change to client")
-    revert_to_client_mode()
+# def change_ap(new_ap):
+#     """
+#     Sends a request to the server of the specified device to change the access point (AP).
+#
+#     Args:
+#         new_ap (str): The name of the device that will become the new AP.
+#
+#     Returns:
+#         None: The function does not return anything.
+#
+#     Raises:
+#         requests.exceptions.HTTPError: If the request to the server returns an error response.
+#         requests.exceptions.RequestException: If the request to the server fails for any other reason.
+#     """
+#
+#     url = f'http://{new_ap}@{new_ap}:5000/revert_to_ap'
+#     requests.post(url)
+#
+#     print("Now we have to change to client")
+#     revert_to_client_mode()
 
 
 def update_device_data(device_name, is_ap):
@@ -258,12 +269,15 @@ def update_device_data(device_name, is_ap):
     except json.JSONDecodeError as e:
         raise ValueError(f"Error decoding JSON data in file '{file_path}': {e}")
 
-    # Update the "is_ap" value for the specified device
+    # Find the existing AP and reset its "is_ap" value to False
+    for device in data:
+        if device["is_ap"]:
+            device["is_ap"] = False
 
+    # Update the "is_ap" value for the specified device
     for device in data:
         if device["name"] == device_name:
             device["is_ap"] = is_ap
-
             break
     else:
         raise ValueError(f"Device '{device_name}' not found in JSON data.")
@@ -274,3 +288,36 @@ def update_device_data(device_name, is_ap):
             json.dump(data, f)
     except Exception as e:
         raise ValueError(f"Error writing updated data to file '{file_path}': {e}")
+
+
+def bandwidth_control():
+    if status.bandwidth > 60:
+        url = f'http://{local_host}@{local_host}:5000/camera_requests'
+        send_command = {'function_name': 'camera', 'action': 'start'}
+
+        # Send the request to the endpoint on the AP
+        response = requests.post(url, json=send_command)
+        # Check the status code of the response
+        if response.status_code == 200:
+            print(f'Request has the status {response.status_code}.')
+        else:
+            print(f'Request failed with status code {response.status_code}.')
+    else:
+        url = f'http://{local_host}@{local_host}:5000/camera_requests'
+        send_command = {'function_name': 'camera', 'action': 'stop'}
+        print(f"Bandwidth is {status.bandwidth}")
+        # Send the request to the endpoint on the AP
+        response = requests.post(url, json=send_command)
+        # Check the status code of the response
+        if response.status_code == 200:
+            print('Request to STOP sent successfully.')
+        else:
+            print(f'Request failed with status code {response.status_code}.')
+
+def count_down():
+    seconds = 5
+
+    while seconds > 0:
+        print(seconds)
+        time.sleep(1)
+        seconds -= 1
