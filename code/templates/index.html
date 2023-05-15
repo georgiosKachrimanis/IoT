@@ -1,3 +1,14 @@
+<!--
+    This HTML page displays the devices' status and controls.
+    It renders a table with device information and camera controls.
+    The camera controls allow starting or stopping the camera based on the selected device.
+
+    The page also includes a chessboard-like grid with labeled rows and columns,
+    indicating the devices' positions on the grid.
+
+    Author: G.Kachrimanis
+-->
+
 <!DOCTYPE html>
 <!DOCTYPE html>
 <html lang="EN">
@@ -10,7 +21,7 @@
 </head>
 <body>
 <div class="container">
-    <h1>Devices Status</h1>
+    <h1>Devices Controls</h1>
     <table>
         <thead>
         <tr>
@@ -18,8 +29,7 @@
             <th>Time</th>
             <th>Battery Percent</th>
             <th>Available Storage</th>
-            <th>Total Memory</th>
-            <th>Available Memory</th>
+            <th colspan="2">Camera Controls</th>
             <th>Position</th>
             <th>Is AP</th>
         </tr>
@@ -31,8 +41,10 @@
             <td>{{ device.time }}</td>
             <td>{{ device.battery_percent }}</td>
             <td>{{ device.available_storage }}</td>
-            <td>{{ device.total_memory }}</td>
-            <td>{{ device.available_memory }}</td>
+            <td colspan="2">
+                <button class="startButton" onclick="openPage('http://' + '{{ device.name }}' + '@' + '{{ device.name }}.local:5000/start_camera')">Start</button>
+                <button class="stopButton" onclick="openPage('http://' + '{{ device.name }}' + '@' + '{{ device.name }}.local:5000/stop_camera')">Stop</button>
+            </td>
             <td>{{ device.position.latitude }}, {{ device.position.longitude }}</td>
             <td>{% if device.is_ap %}Yes{% else %}No{% endif %}</td>
         </tr>
@@ -50,6 +62,19 @@
 
 </body>
 <script>
+    /*
+        This script handles the functionality of opening a new page with the camera control URL.
+        It listens for a click event on the camera control buttons and opens the corresponding URL in a new tab.
+    */
+    function openPage(url) {
+        window.open(url, '_blank');
+    }
+
+    /*
+        This script executes when the DOM content is fully loaded.
+        It creates the chessboard grid and sets the colors and labels based on the devices' data.
+    */
+
     document.addEventListener('DOMContentLoaded', () => {
         const devicesDataJS = {{ devices_data | tojson | safe }};
         console.log(devicesDataJS);
@@ -78,16 +103,16 @@
             }
         }
 
-function setColor(row, col, color, text) {
-    const square = document.getElementById(`square-${row}-${col}`);
-    if (square) {
-        const circle = document.createElement('div');
-        circle.classList.add('circle');
-        circle.style.backgroundColor = color;
-        circle.innerText = text;
-        square.appendChild(circle);
-    }
-}
+        function setColor(row, col, color, text) {
+            const square = document.getElementById(`square-${row}-${col}`);
+            if (square) {
+                const circle = document.createElement('div');
+                circle.classList.add('circle');
+                circle.style.backgroundColor = color;
+                circle.innerText = text;
+                square.appendChild(circle);
+            }
+        }
 
         createLabels();
         createChessboard();
@@ -100,6 +125,8 @@ function setColor(row, col, color, text) {
             setColor(row, col, color, text);
         });
     });
+
+
 </script>
 
 

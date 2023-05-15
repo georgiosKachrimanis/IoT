@@ -14,88 +14,7 @@ available = True
 previous_state = ''
 
 
-@server.route('/camera_requests', methods=['GET', 'POST'])
-def camera():
-
-    clients = status.devices()
-    command = request.get_json()
-    success = False
-    if command['action'] == 'start':
-        message = {'message': 'start_camera'}
-    elif command['action'] == 'stop_broadcasting':
-        message = {'message': 'stop_broadcasting'}
-    elif command['action'] == 'start_broadcasting':
-        message = {'message': 'start_broadcasting'}
-    else:
-        message = {'message': 'no_change'}
-
-    for client in clients:
-        print(f'Trying to send request to connected device {client}')
-        url = f'http://{client}@{client}:5000/camera_handler'
-        server_url = f'http://{client}@{client}:5000/'
-        # Extra code to avoid issues
-        if is_server_active(server_url):
-            response = requests.post(url, json=message)
-            if response.status_code == 200:
-                print('Request sent successfully.')
-                success = True
-            else:
-                print(f'Request failed with status code {response.status_code}.')
-        else:
-            print('Server not active.')
-
-    if success:
-        return jsonify({'success': True})
-    else:
-        return jsonify({'success': False})
-
-
-@server.route('/camera_handler', methods=['POST'])
-def camera_handler():
-    """
-    This function handles the 'start_camera' and 'stop_camera' messages received from
-    connected devices.
-
-    If the 'message' key in the request JSON is 'start_camera' and the previous state was
-    not 'start_camera', the function starts the camera functionality.
-    If the 'message' key is 'stop_camera' and the previous state was not 'stop_camera',
-    the function stops the camera functionality.
-    If the 'message' key is anything else, the function does nothing.
-
-    Args:
-        None.
-
-    Returns:
-        A JSON response with a 'success' key set to True.
-    """
-
-    received_command = request.get_json()
-    message = received_command['message']
-    global previous_state
-    if message == 'start_camera' and previous_state != message:
-        # Start the camera function and start broadcasting
-        print(f"Starting camera... the previous state was {previous_state}")
-        previous_state = message
-    elif message == 'start_broadcasting' and previous_state != message:
-        # Start again the broadcasting function
-        previous_state = message
-        print(f"Starting camera broadcasting... the previous state was {previous_state}")
-    elif message == 'stop_broadcasting' and previous_state != message:
-        # Stop broadcasting video
-        previous_state = message
-        print(f"Stop camera broadcasting... the previous state was {previous_state}")
-    elif message == 'stop_camera' and previous_state != message:
-        # Stop the broadcasting function
-        previous_state = message
-        print(f"Stopping camera... the previous state was {previous_state}")
-    else:
-        # I do not know what here will be... maybe stop in general the camera
-        print(f"Unknown message received and the previous state was {previous_state} ")
-
-    return jsonify({'success': True})
-
-
-@server.route('/stop_camera', methods=['POST'])
+@server.route('/stop_camera', methods=['POST', 'GET'])
 def stop_camera_handler():
     """
     Stops the camera function.
@@ -107,6 +26,20 @@ def stop_camera_handler():
         A JSON object containing a success status message.
     """
     return stop_camera()
+
+
+@server.route('/start_camera', methods=['POST', 'GET'])
+def start_camera_handler():
+    """
+    Starts the camera function.
+
+    Args:
+        None.
+
+    Returns:
+        A JSON object containing a success status message.
+    """
+    return start_camera()
 
 
 @server.route('/')
@@ -143,13 +76,37 @@ def download():
 
 @server.route('/revert_to_ap', methods=['POST', 'GET'])
 def revert_to_ap():
-    print("I hope it will revert to AP...")
+    """
+    Reverts the device to Access Point (AP) mode.
+
+    This function sends a request to revert the device to AP mode.
+    It prints a message indicating the attempt to revert and calls the 'count_down' and 'revert_to_ap_mode' functions.
+
+    Parameters:
+    None
+
+    Returns:
+    None
+    """
+
     count_down()
     revert_to_ap_mode()
 
 
-@server.route('/revert_to_client', methods=['POST', 'GET'])
 def revert_to_client():
+    """
+    Reverts the device to Client mode.
+
+    This function sends a request to revert the device to Client mode.
+    It calls the 'revert_to_client_mode' function and returns a success message if the revert is successful,
+    or an error message if an exception occurs.
+
+    Parameters:
+    None
+
+    Returns:
+    A string indicating the success message or error message.
+    """
 
     try:
         revert_to_client_mode()
@@ -158,9 +115,27 @@ def revert_to_client():
         return f'Error: {str(e)}'
 
 
+@server.route('/test/<path:url>', methods=['POST', 'GET'])
 def send_request(url):
-    response = requests.get(url)
-    return response.text
+    """
+    Sends an HTTP GET request to the specified URL and checks if the server is up.
+
+    This function sends an HTTP GET request to the provided URL and checks if the server is up by verifying
+    the response status code. If the server is up, it returns a success message. Otherwise, it returns a failure message.
+
+    Parameters:
+    url (str): The URL to send the request to.
+
+    Returns:
+    A string indicating the success or failure message.
+    """
+    try:
+        response = requests.get(url)
+        response.raise_for_status()  # Raises an exception if the response status code is not successful
+        return "Server is up and running."
+    except requests.exceptions.RequestException as e:
+        return f"Server is not available: {str(e)}"
+
 
 
 @server.route('/download/<path:file_path>')
@@ -179,46 +154,6 @@ def serve_file(file_path):
     except Exception as e:
         return str(e)
 
-
-# @server.route('/data')
-# def data():
-#     """
-#     Reads data from a JSON file and renders it on a web page.
-#
-#     Args:
-#         None.
-#
-#     Returns:
-#         A rendered HTML template containing the data from the JSON file.
-#     """
-#
-#     # read the JSON file
-#     with open(f'/home/{hostname}/Desktop/code/data/data.json') as f:
-#         information = json.load(f)
-#
-#     # render the data template with the data
-#     return render_template('data.html', data=information)
-
-
-# @server.route('/status/<hostname>', methods=['GET'])
-# def server_status(user):
-#     """
-#     Retrieves the status of a specified server.
-#
-#     Args:
-#         user (str): The name of the server to retrieve the status of.
-#
-#     Returns:
-#         A rendered HTML template containing the status information of the specified server.
-#     """
-#
-#     response = send_request('http://' + user + '.local:5000/')
-#     return render_template('start_server.html', response=response)
-
-@server.route('/update_device_mode', methods=['POST', 'GET'])
-def update_device_mode():
-
-    return jsonify({'message': 'Device mode updated'})
 
 @server.route('/receive-connected-devices', methods=['POST', 'GET'])
 def receive_connected_devices():
@@ -256,6 +191,7 @@ def end():
     return shutdown()
 
 
+
 @server.route('/update_bandwidth', methods=['POST', 'GET'])
 def update_bandwidth():
     """
@@ -273,6 +209,126 @@ def update_bandwidth():
     status.bandwidth = new_value
     print(f"Updated value: {status.bandwidth}")
     return jsonify({'success': True})
+
+# @server.route('/data')
+# def data():
+#     """
+#     Reads data from a JSON file and renders it on a web page.
+#
+#     Args:
+#         None.
+#
+#     Returns:
+#         A rendered HTML template containing the data from the JSON file.
+#     """
+#
+#     # read the JSON file
+#     with open(f'/home/{hostname}/Desktop/code/data/data.json') as f:
+#         information = json.load(f)
+#
+#     # render the data template with the data
+#     return render_template('data.html', data=information)
+
+
+# @server.route('/status/<hostname>', methods=['GET'])
+# def server_status(user):
+#     """
+#     Retrieves the status of a specified server.
+#
+#     Args:
+#         user (str): The name of the server to retrieve the status of.
+#
+#     Returns:
+#         A rendered HTML template containing the status information of the specified server.
+#     """
+#
+#     response = send_request('http://' + user + '.local:5000/')
+#     return render_template('start_server.html', response=response)
+
+#
+# @server.route('/camera_handler', methods=['POST'])
+# def camera_handler():
+#     """
+#     This function handles the 'start_camera' and 'stop_camera' messages received from
+#     connected devices.
+#
+#     If the 'message' key in the request JSON is 'start_camera' and the previous state was
+#     not 'start_camera', the function starts the camera functionality.
+#     If the 'message' key is 'stop_camera' and the previous state was not 'stop_camera',
+#     the function stops the camera functionality.
+#     If the 'message' key is anything else, the function does nothing.
+#
+#     Args:
+#         None.
+#
+#     Returns:
+#         A JSON response with a 'success' key set to True.
+#     """
+#
+#     received_command = request.get_json()
+#     message = received_command['message']
+#     global previous_state
+#     if message == 'start_camera' and previous_state != message:
+#         # Start the camera function and start broadcasting
+#         print(f"Starting camera... the previous state was {previous_state}")
+#         previous_state = message
+#     elif message == 'start_broadcasting' and previous_state != message:
+#         # Start again the broadcasting function
+#         previous_state = message
+#         print(f"Starting camera broadcasting... the previous state was {previous_state}")
+#     elif message == 'stop_broadcasting' and previous_state != message:
+#         # Stop broadcasting video
+#         previous_state = message
+#         print(f"Stop camera broadcasting... the previous state was {previous_state}")
+#     elif message == 'stop_camera' and previous_state != message:
+#         # Stop the broadcasting function
+#         previous_state = message
+#         print(f"Stopping camera... the previous state was {previous_state}")
+#     else:
+#         # I do not know what here will be... maybe stop in general the camera
+#         print(f"Unknown message received and the previous state was {previous_state} ")
+#
+#     return jsonify({'success': True})
+
+# @server.route('/update_device_mode', methods=['POST', 'GET'])
+# def update_device_mode():
+#
+#     return jsonify({'message': 'Device mode updated'})
+
+# @server.route('/camera_requests', methods=['GET', 'POST'])
+# def camera():
+#
+#     clients = status.devices()
+#     command = request.get_json()
+#     success = False
+#     if command['action'] == 'start':
+#         message = {'message': 'start_camera'}
+#     elif command['action'] == 'stop_broadcasting':
+#         message = {'message': 'stop_broadcasting'}
+#     elif command['action'] == 'start_broadcasting':
+#         message = {'message': 'start_broadcasting'}
+#     else:
+#         message = {'message': 'no_change'}
+#
+#     for client in clients:
+#         print(f'Trying to send request to connected device {client}')
+#         url = f'http://{client}@{client}:5000/camera_handler'
+#         server_url = f'http://{client}@{client}:5000/'
+#         # Extra code to avoid issues
+#         if is_server_active(server_url):
+#             response = requests.post(url, json=message)
+#             if response.status_code == 200:
+#                 print('Request sent successfully.')
+#                 success = True
+#             else:
+#                 print(f'Request failed with status code {response.status_code}.')
+#         else:
+#             print('Server not active.')
+#
+#     if success:
+#         return jsonify({'success': True})
+#     else:
+#         return jsonify({'success': False})
 
 
 # Start the server on all network interfaces

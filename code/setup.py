@@ -79,7 +79,7 @@ def create_dnsmasq(user):
     # Extract the numerical part of the username
     pi_number = get_pi_number(user)
 
-    # Set the DHCP range based on the username number the range is from 2-250 you can adjust to desired
+    # Set the DHCP range based on the username number the range is from 2-200 you can adjust to desired
     dhcp_range = f"192.168.{pi_number}.2,192.168.{pi_number}.200,255.255.255.0,24h"
 
     os.system("sudo apt install dnsmasq -y")
@@ -163,8 +163,6 @@ def install_apps():
     print("Upgrading and updating your system")
     result1 = os.system('sudo apt-get install python3-flask -y')
     result2 = os.system("sudo DEBIAN_FRONTEND=noninteractive apt install -y netfilter-persistent iptables-persistent")
-    # installing external libraries
-    os.system('sudo pip3 install svgwrite -y')
 
     # Check the result of the installation
     if (result1 == 0) & (result2 == 0):
@@ -213,31 +211,31 @@ def adjust_wpa_range(user):
     print("The list with available networks has been updated!")
 
 
-# def adjust_rc_file():
-#     """
-#     Adds a command to the /etc/rc.local file and sets it to executable. The function
-#     will check if the command is already present before adding it. The command is added
-#     to fix issues whit IP addressing after restart of the RPi as AP.
-#
-#     Args:
-#     None
-#
-#     Returns:
-#     None
-#     """
-#     # Add command to rc.local
-#     command = "sudo systemctl restart dhcpcd dnsmasq hostapd"
-#     rc_local_file = "/etc/rc.local"
-#     with open(rc_local_file, "r+") as f:
-#         contents = f.read()
-#         if command not in contents:
-#             f.seek(0, 0)
-#             f.write("#!/bin/sh -e\n")
-#             f.write(command + "\n")
-#             f.write("exit 0\n")
-#
-#     # Make rc.local executable
-#     os.chmod(rc_local_file, 0o755)
+def adjust_rc_file():
+    """
+    Adds a command to the /etc/rc.local file and sets it to executable. The function
+    will check if the command is already present before adding it. The command is added
+    to fix issues whit IP addressing after restart of the RPi as AP.
+
+    Args:
+    None
+
+    Returns:
+    None
+    """
+    # Add command to rc.local
+    command = "sudo systemctl restart dhcpcd dnsmasq hostapd"
+    rc_local_file = "/etc/rc.local"
+    with open(rc_local_file, "r+") as f:
+        contents = f.read()
+        if command not in contents:
+            f.seek(0, 0)
+            f.write("#!/bin/sh -e\n")
+            f.write(command + "\n")
+            f.write("exit 0\n")
+
+    # Make rc.local executable
+    os.chmod(rc_local_file, 0o755)
 
 
 # Call the functions to create the configuration files
@@ -248,7 +246,7 @@ if install_apps():
     create_hostapd(username)
     create_dhcpcd(username)
     adjust_wpa_range(username)
-    # adjust_rc_file()
+    adjust_rc_file()
 
     print("All configuration files have been successfully created.\n")
 

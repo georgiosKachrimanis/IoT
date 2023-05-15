@@ -282,4 +282,4 @@ def shutdown():
     """
     Shuts down the Raspberry Pi.
     """
-    subprocess.run(['sudo', 'shutdown', '-h', 'now'])
+    subprocess.run(['sudo', 'shutdown', '-h'])

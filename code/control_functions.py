@@ -65,6 +65,16 @@ def create_devices_file():
 
 
 def receive_connected_devices():
+    """
+    Downloads the connected devices data file from the server running on the access point.
+
+    Returns:
+        None
+
+    Raises:
+        requests.exceptions.RequestException: If an error occurs while downloading the file.
+
+    """
     access_point = get_wifi_network()
     server_url = f'http://{access_point}@{access_point}.local:5000/'
     file_path = '/data/connected_devices.json'
