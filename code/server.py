@@ -1,10 +1,13 @@
 from flask import *
+
+from code import control_functions
 from routes import status
 from routes.camera_control import start_camera, stop_camera
 from control_functions import *
 from routes.status import *
 from revert_ap_client_mode import *
 import requests
+
 from werkzeug.utils import secure_filename
 
 server = Flask(__name__)
@@ -12,6 +15,25 @@ server = Flask(__name__)
 hostname = status.get_device_name()
 available = True
 previous_state = ''
+
+
+
+# Start the libcamera-vid command as a separate process
+libcamera_process = subprocess.Popen(
+    ['libcamera-vid', '-t', '0', '--inline', '--listen', '-o', 'tcp://0.0.0.0:8000'],
+    stdout=subprocess.PIPE,
+    stderr=subprocess.PIPE
+)
+
+
+@server.route('/stream')
+def stream():
+    # Set the content type to multipart/x-mixed-replace
+    # to enable streaming in the browser
+    return Response(
+        libcamera_process.stdout,
+        mimetype='multipart/x-mixed-replace; boundary=FRAME'
+    )
 
 
 @server.route('/stop_camera', methods=['POST', 'GET'])
@@ -25,6 +47,7 @@ def stop_camera_handler():
     Returns:
         A JSON object containing a success status message.
     """
+
     return stop_camera()
 
 
@@ -39,6 +62,7 @@ def start_camera_handler():
     Returns:
         A JSON object containing a success status message.
     """
+
     return start_camera()
 
 
@@ -71,7 +95,7 @@ def download():
     Returns:
         None.
     """
-    status.download()
+    control_functions.download()
 
 
 @server.route('/revert_to_ap', methods=['POST', 'GET'])

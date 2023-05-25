@@ -11,35 +11,21 @@ local_host = get_device_name()
 connected_devices = devices()
 
 
-def control_panel():
-    filtered_hostnames = http_devices().split('<br>')[:-1]
-    return render_template('index.html', filtered_hostnames=filtered_hostnames)
-
-
-def http_devices():
-    filtered_hostnames = devices()
-    # create a response string with the hostnames of the connected devices
-    response = "<h1>Connected Devices:</h1><br>"
-    for hostname in filtered_hostnames:
-        response += f"{hostname}<br>"
-
-    # return the response to the client
-    return response
-
-
 def read_device_data(file_path):
     """
     Read the JSON data from a file and return a dictionary with the device data.
     :param file_path: the path to the file containing the device data.
     :return: a dictionary containing the device data.
     """
-    with open(file_path) as f:
-        try:
+    # Load the device data JSON file
+    # file_path = f"/home/{local_host}/Desktop/code/data/connected_devices.json"
+    try:
+        with open(file_path) as f:
             data = json.load(f)
-        except json.JSONDecodeError as e:
-            print(f"Error decoding JSON data in file '{file_path}': {e}")
-            return None
-
+    except FileNotFoundError:
+        raise FileNotFoundError(f"Device data file '{file_path}' not found.")
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Error decoding JSON data in file '{file_path}': {e}")
     return data
 
 
@@ -57,7 +43,14 @@ def create_devices_file():
 
         if file_name.endswith('data.json'):
             file_path = os.path.join(folder_path, file_name)
-            devices_data.append(read_device_data(file_path))
+
+            try:
+                device_data = read_device_data(file_path)
+                devices_data.append(device_data)
+            except json.JSONDecodeError:
+                print(f"Error decoding JSON data in file '{file_path}'. Skipping file.")
+            except FileNotFoundError:
+                print(f"File '{file_path}' not found. Skipping file.")
 
     filename = f'/home/{local_host}/Desktop/code/data/connected_devices.json'
     with open(filename, 'w') as f:
@@ -66,15 +59,14 @@ def create_devices_file():
 
 def receive_connected_devices():
     """
-    Downloads the connected devices data file from the server running on the access point.
+       Receives the connected devices JSON file from the access point (AP) server.
 
-    Returns:
-        None
+       This function connects to the AP server identified by the Wi-Fi network name (SSID) and downloads the
+       'connected_devices.json' file from the server. The file is saved locally to '/home/{local_host}/Desktop/code/data/connected_devices.json'.
 
-    Raises:
-        requests.exceptions.RequestException: If an error occurs while downloading the file.
-
-    """
+       Raises:
+           requests.exceptions.RequestException: If there is an error in downloading the file from the AP server.
+       """
     access_point = get_wifi_network()
     server_url = f'http://{access_point}@{access_point}.local:5000/'
     file_path = '/data/connected_devices.json'
@@ -155,20 +147,6 @@ def calculate_distances(coordinates):
     return totals
 
 
-def sort_ascending(devices_dictionary):
-    """
-    Sorts the totals dictionary in ascending order by value and returns a list of tuples.
-
-    Args:
-    - totals (dict): A dictionary of point names and their total distance from all other points.
-
-    Returns:
-    - A list of tuples, where each tuple contains a point name and its corresponding total distance.
-    """
-    sorted_dict = sorted(devices_dictionary.items(), key=lambda x: x[1])
-    return sorted_dict
-
-
 def extract_devices():
     """
     Extracts the device name and position from a JSON file and returns them as a list of dictionaries.
@@ -177,12 +155,8 @@ def extract_devices():
     """
 
     file_path = f'/home/{local_host}/Desktop/code/data/connected_devices.json'
-    with open(file_path) as f:
-        try:
-            data = json.load(f)
-        except json.JSONDecodeError as e:
-            print(f"Error decoding JSON data in file '{file_path}': {e}")
-            return None
+
+    data = read_device_data(file_path)
 
     devices_dictionary = [{"name": "Center", "position": (0, 0)}]
     for device in data:
@@ -195,7 +169,7 @@ def extract_devices():
     return devices_dictionary
 
 
-def calcullate_next_AP():
+def calculate_next_AP():
     """
     Determines the next Access Point (AP) device based on the distances between all devices,
     and updates the status of the devices in the 'connected_devices.json' file.
@@ -213,37 +187,14 @@ def calcullate_next_AP():
 
     if sorted_totals:
         first_device_name = next(iter(sorted_totals.keys()))
+        update_device_data(first_device_name, 'is_ap')
         if first_device_name == local_host:
             print(f"The {local_host} is still AP, there will be no changes")
             return first_device_name
         else:
             print(f"The {first_device_name} will be the new AP+++++++++")
             # Update of the status of the new AP
-
             return first_device_name
-
-
-
-def change_ap(new_ap):
-    """
-    Sends a request to the server of the specified device to change the access point (AP).
-
-    Args:
-        new_ap (str): The name of the device that will become the new AP.
-
-    Returns:
-        None: The function does not return anything.
-
-    Raises:
-        requests.exceptions.HTTPError: If the request to the server returns an error response.
-        requests.exceptions.RequestException: If the request to the server fails for any other reason.
-    """
-
-    url = f'http://{new_ap}@{new_ap}:5000/revert_to_ap'
-    requests.post(url)
-
-    print("Now we have to change to client")
-    revert_to_client_mode()
 
 
 def update_device_data(device_name, is_ap):
@@ -261,20 +212,18 @@ def update_device_data(device_name, is_ap):
     """
     # Load the device data JSON file
     file_path = f"/home/{local_host}/Desktop/code/data/connected_devices.json"
-    try:
-        with open(file_path) as f:
-            data = json.load(f)
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Device data file '{file_path}' not found.")
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Error decoding JSON data in file '{file_path}': {e}")
+
+    data = read_device_data(file_path)
+
+    # Find the existing AP and reset its "is_ap" value to False
+    for device in data:
+        if device["is_ap"]:
+            device["is_ap"] = False
 
     # Update the "is_ap" value for the specified device
-
     for device in data:
         if device["name"] == device_name:
             device["is_ap"] = is_ap
-
             break
     else:
         raise ValueError(f"Device '{device_name}' not found in JSON data.")
@@ -287,29 +236,93 @@ def update_device_data(device_name, is_ap):
         raise ValueError(f"Error writing updated data to file '{file_path}': {e}")
 
 
-def bandwidth_control():
-    if status.bandwidth > 60:
-        url = f'http://{local_host}@{local_host}:5000/camera_requests'
-        send_command = {'function_name': 'camera', 'action': 'start'}
+def calculate_2nd_AP():
+    """
+    Determines the next Access Point (AP) device, if there is no connection with the dedicated AP
+    The calculations are based on the distances between all devices,
+    and updates the status of the devices in the 'connected_devices.json' file.
 
-        # Send the request to the endpoint on the AP
-        response = requests.post(url, json=send_command)
-        # Check the status code of the response
-        if response.status_code == 200:
-            print(f'Request has the status {response.status_code}.')
+    Returns:
+        bool: True if the local host is the second device in line for becoming the AP,
+              False otherwise.
+
+    Raises:
+        ValueError: If the current device is not found in the 'connected_devices.json' file
+                    or if there is an error updating the file.
+    """
+    devices_totals = calculate_distances(extract_devices())
+    sorted_totals = dict(sorted(devices_totals.items(), key=lambda item: item[1]))
+
+    if sorted_totals:
+        second_device_name = list(sorted_totals.keys())[1]
+        if second_device_name == local_host:
+            print(f"The {local_host} is the second device in line for becoming the AP")
+            update_device_data(second_device_name, 'is_ap')
+            return second_device_name
+
+    raise ValueError(f"Current device '{local_host}' not found in 'connected_devices.json' file.")
+
+
+def download():
+    """
+    Downloads the data files of connected Raspberry Pis from their respective servers, and saves them to the local machine.
+
+    Returns:
+    str: A message indicating whether the download was successful or not.
+    """
+    client_ips = devices()
+    # get the server IP address and file path from the request form
+    for i in client_ips:
+        file_path = f'data/{i}data.json'
+        localhost = get_device_name()
+        # construct the URL of the file on the remote server
+        server_url = f'http://{i}@{i}.local:5000/'
+
+        if is_server_active(server_url):
+            url = f'http://{i}@{i}.local:5000/download/{file_path}'
+            local_file_path = f'/home/{localhost}/Desktop/code/data/{i}data.json'
+            try:
+                download_file(url, local_file_path)
+                print(f"The data file from {i} is added.")
+            except requests.exceptions.RequestException as e:
+                print(f"Error downloading file from {i}: {e}")
         else:
-            print(f'Request failed with status code {response.status_code}.')
-    else:
-        url = f'http://{local_host}@{local_host}:5000/camera_requests'
-        send_command = {'function_name': 'camera', 'action': 'stop'}
-        print(f"Bandwidth is {status.bandwidth}")
-        # Send the request to the endpoint on the AP
-        response = requests.post(url, json=send_command)
-        # Check the status code of the response
-        if response.status_code == 200:
-            print('Request to STOP sent successfully.')
-        else:
-            print(f'Request failed with status code {response.status_code}.')
+            print(f'The server on {i} is not reachable')
+
+    # return a response to the client
+    return 'Downloaded file(s) from server(s).'
+
+
+def download_file(url, file_path):
+    """
+    Downloads a file from the given URL and saves it to the specified file path.
+
+    Args:
+        url (str): The URL to download the file from.
+        file_path (str): The path to save the downloaded file.
+
+    Returns:
+        str: The path of the downloaded file.
+
+    Raises:
+        requests.exceptions.RequestException: If an error occurs while downloading the file.
+    """
+    response = requests.get(url, stream=True)
+    with open(file_path, 'wb') as f:
+        for chunk in response.iter_content(chunk_size=1024):
+            if chunk:
+                f.write(chunk)
+
+    # In order to avoid problems with write read rights
+    os.chmod(file_path, 0o666)
+    return file_path
+
+
+def shutdown():
+    """
+    Shuts down the Raspberry Pi.
+    """
+    subprocess.run(['sudo', 'shutdown', '-h'])
 
 def count_down():
     seconds = 5
@@ -318,3 +331,61 @@ def count_down():
         print(seconds)
         time.sleep(1)
         seconds -= 1
+
+
+# def send_update_device_mode_request(host):
+#     url = "http://host@host:5000/update_device_mode"  # Replace with your Flask server URL
+#     try:
+#         response = requests.post(url)
+#         response.raise_for_status()
+#         print("Request sent successfully.")
+#     except requests.exceptions.HTTPError as e:
+#         print("HTTP error:", e)
+#     except requests.exceptions.RequestException as e:
+#         print("Request error:", e)
+
+# def change_ap(new_ap):
+#     """
+#     Sends a request to the server of the specified device to change the access point (AP).
+#
+#     Args:
+#         new_ap (str): The name of the device that will become the new AP.
+#
+#     Returns:
+#         None: The function does not return anything.
+#
+#     Raises:
+#         requests.exceptions.HTTPError: If the request to the server returns an error response.
+#         requests.exceptions.RequestException: If the request to the server fails for any other reason.
+#     """
+#
+#     url = f'http://{new_ap}@{new_ap}:5000/revert_to_ap'
+#     requests.post(url)
+#
+#     print("Now we have to change to client")
+#     revert_to_client_mode()
+
+
+# def bandwidth_control():
+#     if status.bandwidth > 60:
+#         url = f'http://{local_host}@{local_host}:5000/camera_requests'
+#         send_command = {'function_name': 'camera', 'action': 'start'}
+#
+#         # Send the request to the endpoint on the AP
+#         response = requests.post(url, json=send_command)
+#         # Check the status code of the response
+#         if response.status_code == 200:
+#             print(f'Request has the status {response.status_code}.')
+#         else:
+#             print(f'Request failed with status code {response.status_code}.')
+#     else:
+#         url = f'http://{local_host}@{local_host}:5000/camera_requests'
+#         send_command = {'function_name': 'camera', 'action': 'stop'}
+#         print(f"Bandwidth is {status.bandwidth}")
+#         # Send the request to the endpoint on the AP
+#         response = requests.post(url, json=send_command)
+#         # Check the status code of the response
+#         if response.status_code == 200:
+#             print('Request to STOP sent successfully.')
+#         else:
+#             print(f'Request failed with status code {response.status_code}.')
