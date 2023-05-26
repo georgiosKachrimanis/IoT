@@ -1,10 +1,7 @@
+import socket
 from flask import *
-
-from code import control_functions
-from routes import status
-from routes.camera_control import start_camera, stop_camera
 from control_functions import *
-from routes.status import *
+from routes import camera_control
 from revert_ap_client_mode import *
 import requests
 
@@ -12,28 +9,27 @@ from werkzeug.utils import secure_filename
 
 server = Flask(__name__)
 
-hostname = status.get_device_name()
+hostname = socket.gethostname()
 available = True
 previous_state = ''
 
 
+# # Start the libcamera-vid command as a separate process
+# libcamera_process = subprocess.Popen(
+#     ['libcamera-vid', '-t', '0', '--inline', '--listen', '-o', 'tcp://0.0.0.0:8000'],
+#     stdout=subprocess.PIPE,
+#     stderr=subprocess.PIPE
+# )
 
-# Start the libcamera-vid command as a separate process
-libcamera_process = subprocess.Popen(
-    ['libcamera-vid', '-t', '0', '--inline', '--listen', '-o', 'tcp://0.0.0.0:8000'],
-    stdout=subprocess.PIPE,
-    stderr=subprocess.PIPE
-)
 
-
-@server.route('/stream')
-def stream():
-    # Set the content type to multipart/x-mixed-replace
-    # to enable streaming in the browser
-    return Response(
-        libcamera_process.stdout,
-        mimetype='multipart/x-mixed-replace; boundary=FRAME'
-    )
+# @server.route('/stream')
+# def stream():
+#     # Set the content type to multipart/x-mixed-replace
+#     # to enable streaming in the browser
+#     return Response(
+#         libcamera_process.stdout,
+#         mimetype='multipart/x-mixed-replace; boundary=FRAME'
+#     )
 
 
 @server.route('/stop_camera', methods=['POST', 'GET'])
@@ -48,7 +44,7 @@ def stop_camera_handler():
         A JSON object containing a success status message.
     """
 
-    return stop_camera()
+    return camera_control.stop_camera()
 
 
 @server.route('/start_camera', methods=['POST', 'GET'])
@@ -63,7 +59,7 @@ def start_camera_handler():
         A JSON object containing a success status message.
     """
 
-    return start_camera()
+    return camera_control.start_camera()
 
 
 @server.route('/')
@@ -78,8 +74,8 @@ def home():
         A rendered HTML template for the home page.
     """
     connected_devices_data = []
-    if os.path.exists(f'/home/{hostname}/Desktop/code/data/connected_devices.json'):
-        with open(f'/home/{hostname}/Desktop/code/data/connected_devices.json', 'r') as f:
+    if os.path.exists(f'/home/{hostname}/Desktop/netwiz/data/connected_devices.json'):
+        with open(f'/home/{hostname}/Desktop/netwiz/data/connected_devices.json', 'r') as f:
             connected_devices_data = json.load(f)
     return render_template('index.html', devices_data=connected_devices_data)
 
@@ -95,7 +91,7 @@ def download():
     Returns:
         None.
     """
-    control_functions.download()
+    download()
 
 
 @server.route('/revert_to_ap', methods=['POST', 'GET'])
@@ -112,7 +108,6 @@ def revert_to_ap():
     Returns:
     None
     """
-
     count_down()
     revert_to_ap_mode()
 
@@ -145,7 +140,7 @@ def send_request(url):
     Sends an HTTP GET request to the specified URL and checks if the server is up.
 
     This function sends an HTTP GET request to the provided URL and checks if the server is up by verifying
-    the response status code. If the server is up, it returns a success message. Otherwise, it returns a failure message.
+    the response status netwiz. If the server is up, it returns a success message. Otherwise, it returns a failure message.
 
     Parameters:
     url (str): The URL to send the request to.
@@ -155,11 +150,10 @@ def send_request(url):
     """
     try:
         response = requests.get(url)
-        response.raise_for_status()  # Raises an exception if the response status code is not successful
+        response.raise_for_status()  # Raises an exception if the response status netwiz is not successful
         return "Server is up and running."
     except requests.exceptions.RequestException as e:
         return f"Server is not available: {str(e)}"
-
 
 
 @server.route('/download/<path:file_path>')
@@ -215,24 +209,23 @@ def end():
     return shutdown()
 
 
-
-@server.route('/update_bandwidth', methods=['POST', 'GET'])
-def update_bandwidth():
-    """
-    Updates the available bandwidth on the server.
-
-    Args:
-        None.
-
-    Returns:
-        A JSON object containing a success status message.
-    """
-
-    data_rate = request.get_json()
-    new_value = data_rate['new_value']
-    status.bandwidth = new_value
-    print(f"Updated value: {status.bandwidth}")
-    return jsonify({'success': True})
+# @server.route('/update_bandwidth', methods=['POST', 'GET'])
+# def update_bandwidth():
+#     """
+#     Updates the available bandwidth on the server.
+#
+#     Args:
+#         None.
+#
+#     Returns:
+#         A JSON object containing a success status message.
+#     """
+#
+#     data_rate = request.get_json()
+#     new_value = data_rate['new_value']
+#     bandwidth = new_value
+#     print(f"Updated value: {bandwidth}")
+#     return jsonify({'success': True})
 
 # @server.route('/data')
 # def data():
@@ -247,7 +240,7 @@ def update_bandwidth():
 #     """
 #
 #     # read the JSON file
-#     with open(f'/home/{hostname}/Desktop/code/data/data.json') as f:
+#     with open(f'/home/{hostname}/Desktop/netwiz/data/data.json') as f:
 #         information = json.load(f)
 #
 #     # render the data template with the data
@@ -338,14 +331,14 @@ def update_bandwidth():
 #         print(f'Trying to send request to connected device {client}')
 #         url = f'http://{client}@{client}:5000/camera_handler'
 #         server_url = f'http://{client}@{client}:5000/'
-#         # Extra code to avoid issues
+#         # Extra netwiz to avoid issues
 #         if is_server_active(server_url):
 #             response = requests.post(url, json=message)
 #             if response.status_code == 200:
 #                 print('Request sent successfully.')
 #                 success = True
 #             else:
-#                 print(f'Request failed with status code {response.status_code}.')
+#                 print(f'Request failed with status netwiz {response.status_code}.')
 #         else:
 #             print('Server not active.')
 #

@@ -1,7 +1,7 @@
 
-from code.device import *
-from code.server import *
-from code.control_functions import *
+from device import *
+from server import *
+from control_functions import *
 
 # Create an instance of the Device
 local_device = Device()
@@ -62,14 +62,15 @@ def main():
         local_device.update_device_modes()
         print(f"Status AFTER update--> \ndevice mode = {local_device.mode}\nrouter_mode = {router_status}")
 
-        if router_status and local_device.mode == 'client':
-            print(f"The {local_device.name} will revert to client mode in:")
-            count_down()
-            revert_to_client_mode()
-        if not router_status and local_device.mode == 'ap':
-            print(f"The {local_device.name} will revert to client mode in:")
-            count_down()
-            revert_to_ap_mode()
+        local_device.check_and_revert_mode()
+        # if router_status and local_device.mode == 'client':
+        #     print(f"The {local_device.name} will revert to client mode in:")
+        #     count_down()
+        #     revert_to_client_mode()
+        # if not router_status and local_device.mode == 'ap':
+        #     print(f"The {local_device.name} will revert to client mode in:")
+        #     count_down()
+        #     revert_to_ap_mode()
 
         # Now the devices will start connecting to the new AP and will continue working as usual.
         time.sleep(60)

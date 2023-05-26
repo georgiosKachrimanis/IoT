@@ -1,5 +1,3 @@
-import picamera
-
 
 class Camera:
     @staticmethod

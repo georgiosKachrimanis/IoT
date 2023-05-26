@@ -1,11 +1,10 @@
-import math
-from flask import *
-from routes.status import *
+from device import *
 from server import *
 from revert_ap_client_mode import *
 import json
 import os
 import time
+import math
 
 local_host = get_device_name()
 connected_devices = devices()
@@ -14,19 +13,20 @@ connected_devices = devices()
 def read_device_data(file_path):
     """
     Read the JSON data from a file and return a dictionary with the device data.
-    :param file_path: the path to the file containing the device data.
-    :return: a dictionary containing the device data.
+
+    Args:
+        file_path (str): The path to the file containing the device data.
+
+    Returns:
+        dict: A dictionary containing the device data, or None if there was an error reading the data.
     """
-    # Load the device data JSON file
-    # file_path = f"/home/{local_host}/Desktop/code/data/connected_devices.json"
     try:
         with open(file_path) as f:
             data = json.load(f)
-    except FileNotFoundError:
-        raise FileNotFoundError(f"Device data file '{file_path}' not found.")
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Error decoding JSON data in file '{file_path}': {e}")
-    return data
+        return data
+    except (FileNotFoundError, json.JSONDecodeError) as e:
+        print(f"Error handling JSON data in file '{file_path}': {e}")
+        return None
 
 
 def create_devices_file():
@@ -37,7 +37,7 @@ def create_devices_file():
                          - 'location': the location of the device
                          - 'battery': the remaining battery of the device
     """
-    folder_path = f'/home/{local_host}/Desktop/code/data'
+    folder_path = f'/home/{local_host}/Desktop/netwiz/data'
     devices_data = []
     for file_name in os.listdir(folder_path):
 
@@ -52,7 +52,7 @@ def create_devices_file():
             except FileNotFoundError:
                 print(f"File '{file_path}' not found. Skipping file.")
 
-    filename = f'/home/{local_host}/Desktop/code/data/connected_devices.json'
+    filename = f'/home/{local_host}/Desktop/netwiz/data/connected_devices.json'
     with open(filename, 'w') as f:
         json.dump(devices_data, f)
 
@@ -62,7 +62,7 @@ def receive_connected_devices():
        Receives the connected devices JSON file from the access point (AP) server.
 
        This function connects to the AP server identified by the Wi-Fi network name (SSID) and downloads the
-       'connected_devices.json' file from the server. The file is saved locally to '/home/{local_host}/Desktop/code/data/connected_devices.json'.
+       'connected_devices.json' file from the server. The file is saved locally to '/home/{local_host}/Desktop/netwiz/data/connected_devices.json'.
 
        Raises:
            requests.exceptions.RequestException: If there is an error in downloading the file from the AP server.
@@ -73,7 +73,7 @@ def receive_connected_devices():
 
     if is_server_active(server_url):
         url = f'{server_url}download/{file_path}'
-        local_file_path = f'/home/{local_host}/Desktop/code/data/connected_devices.json'
+        local_file_path = f'/home/{local_host}/Desktop/netwiz/data/connected_devices.json'
         try:
             download_file(url, local_file_path)
             print(f"The data file from {access_point} is added.")
@@ -138,6 +138,7 @@ def calculate_distances(coordinates):
             distances[j][i] = distance
 
     totals = {}
+
     for i in range(n):
         device_name = coordinates[i]["name"]
         row_total = sum(distances[i])
@@ -154,7 +155,7 @@ def extract_devices():
     :return: a list of dictionaries where each dictionary represents a device and contains the device name and its position.
     """
 
-    file_path = f'/home/{local_host}/Desktop/code/data/connected_devices.json'
+    file_path = f'/home/{local_host}/Desktop/netwiz/data/connected_devices.json'
 
     data = read_device_data(file_path)
 
@@ -211,7 +212,7 @@ def update_device_data(device_name, is_ap):
     - KeyError: If the JSON data is not in the expected format.
     """
     # Load the device data JSON file
-    file_path = f"/home/{local_host}/Desktop/code/data/connected_devices.json"
+    file_path = f"/home/{local_host}/Desktop/netwiz/data/connected_devices.json"
 
     data = read_device_data(file_path)
 
@@ -280,7 +281,7 @@ def download():
 
         if is_server_active(server_url):
             url = f'http://{i}@{i}.local:5000/download/{file_path}'
-            local_file_path = f'/home/{localhost}/Desktop/code/data/{i}data.json'
+            local_file_path = f'/home/{localhost}/Desktop/netwiz/data/{i}data.json'
             try:
                 download_file(url, local_file_path)
                 print(f"The data file from {i} is added.")
@@ -302,20 +303,27 @@ def download_file(url, file_path):
         file_path (str): The path to save the downloaded file.
 
     Returns:
-        str: The path of the downloaded file.
+        str: The path of the downloaded file if successful, or None if there was an error.
 
     Raises:
         requests.exceptions.RequestException: If an error occurs while downloading the file.
     """
     response = requests.get(url, stream=True)
-    with open(file_path, 'wb') as f:
-        for chunk in response.iter_content(chunk_size=1024):
-            if chunk:
-                f.write(chunk)
-
-    # In order to avoid problems with write read rights
-    os.chmod(file_path, 0o666)
-    return file_path
+    if response.status_code == 200:
+        # Check if the response content indicates a valid file
+        if response.headers.get("Content-Type") == "application/json":
+            with open(file_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=1024):
+                    if chunk:
+                        f.write(chunk)
+            os.chmod(file_path, 0o666)
+            return file_path
+        else:
+            # Invalid file format
+            print(f"The file format was corrupted from this URL: {url}")
+    else:
+        # File not found or other error
+        print(f"There was no file found at this URL: {url}")
 
 
 def shutdown():
@@ -323,6 +331,7 @@ def shutdown():
     Shuts down the Raspberry Pi.
     """
     subprocess.run(['sudo', 'shutdown', '-h'])
+
 
 def count_down():
     seconds = 5
@@ -373,19 +382,19 @@ def count_down():
 #
 #         # Send the request to the endpoint on the AP
 #         response = requests.post(url, json=send_command)
-#         # Check the status code of the response
+#         # Check the status netwiz of the response
 #         if response.status_code == 200:
 #             print(f'Request has the status {response.status_code}.')
 #         else:
-#             print(f'Request failed with status code {response.status_code}.')
+#             print(f'Request failed with status netwiz {response.status_code}.')
 #     else:
 #         url = f'http://{local_host}@{local_host}:5000/camera_requests'
 #         send_command = {'function_name': 'camera', 'action': 'stop'}
 #         print(f"Bandwidth is {status.bandwidth}")
 #         # Send the request to the endpoint on the AP
 #         response = requests.post(url, json=send_command)
-#         # Check the status code of the response
+#         # Check the status netwiz of the response
 #         if response.status_code == 200:
 #             print('Request to STOP sent successfully.')
 #         else:
-#             print(f'Request failed with status code {response.status_code}.')
+#             print(f'Request failed with status netwiz {response.status_code}.')
