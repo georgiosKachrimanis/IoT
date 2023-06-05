@@ -2,91 +2,174 @@ import subprocess
 from pathlib import Path
 import os
 
+SERVICES = ['dhcpcd', 'dnsmasq', 'hostapd']
+HOSTAPD = '/etc/hostapd/hostapd.'
+DHCPCD = '/etc/dhcpcd.'
+DNSMASQ = '/etc/dnsmasq.'
 
-def revert_to_ap_mode():
-    # Enable hostapd service
-    subprocess.run(['sudo', 'systemctl', 'unmask', 'hostapd'], check=True)
-    subprocess.run(['sudo', 'systemctl', 'enable', 'hostapd'], check=True)
 
-    # Backup the original dhcpcd.conf file and configure the static IP
-    if Path('/etc/dhcpcd.conf').exists():
-        subprocess.run(['sudo', 'cp', '/etc/dhcpcd.conf', '/etc/dhcpcd.conf.orig'])
-        print('dhcpcd.conf has been backed up successfully.')
+def update_service_file(service):
+    """
+       Updates the specified service configuration file with the new setup.
 
-    if Path('/etc/dhcpcd.conf.setup').exists():
-        subprocess.run(['sudo', 'cp', '/etc/dhcpcd.conf.setup', '/etc/dhcpcd.conf'])
-        print('dhcpcd.conf has been updated with the new file successfully.')
+       This function first backs up the original {service}.conf file by creating a copy
+       named {service}.conf.orig. Then, it replaces the existing {service}.conf file with
+       the {service}.conf.setup file, which contains the new configuration.
 
-    # Backup the original hostapd.conf file and configure the access point
-    if Path('/etc/hostapd/hostapd.conf').exists():
-        subprocess.run(['sudo', 'cp', '/etc/hostapd/hostapd.conf', '/etc/hostapd/hostapd.conf.orig'])
-        print('hostapd.conf has been backed up successfully.')
+       Args:
+           service (str): The name of the service configuration file to update.
 
-    if Path('/etc/hostapd/hostapd.conf.setup').exists():
-        subprocess.run(['sudo', 'cp', '/etc/hostapd/hostapd.conf.setup', '/etc/hostapd/hostapd.conf'])
-        print('hostapd.conf has been updated with the new file successfully.')
+       Raises:
+           None.
+       """
+    if Path(f'{service}.conf').exists():
+        subprocess.run(['sudo', 'cp', f'{service}.conf', f'{service}.conf.orig'])
+        print(f'{service}.conf has been backed up successfully.')
+    else:
+        print(f'Error: {service}.conf file not found.')
 
-    # Start hostapd service
-    subprocess.run(['sudo', 'systemctl', 'start', 'hostapd'], check=True)
+    if Path(f'{service}.conf.setup').exists():
+        subprocess.run(['sudo', 'cp', f'{service}.conf.setup', f'{service}.conf'])
+        print(f'{service}.conf has been updated with the new file successfully.')
+    else:
+        print(f'Error: {service}.conf.setup file not found.')
 
-    # Backup the original dnsmasq.conf file and configure the DHCP and DNS settings
-    if Path('/etc/dnsmasq.conf').exists():
-        subprocess.run(['sudo', 'cp', '/etc/dnsmasq.conf', '/etc/dnsmasq.conf.orig'])
-        print('dnsmasq.conf has been backed up successfully.')
 
-    if Path('/etc/dnsmasq.conf.setup').exists():
-        subprocess.run(['sudo', 'cp', '/etc/dnsmasq.conf.setup', '/etc/dnsmasq.conf'])
-        print('dnsmasq.conf has been updated with the new file successfully.')
+def enable_ipv4_forwarding():
+    """
+    Enables IPv4 forwarding by creating or updating the /etc/sysctl.d/routed-ap.conf file.
 
-    # Enable IPv4 forwarding
+    This function checks if the /etc/sysctl.d/routed-ap.conf file exists. If not, it creates
+    the file and adds the necessary configuration to enable IPv4 routing. If the file already
+    exists, it updates the existing configuration. Finally, it reloads the sysctl settings.
+
+    Raises:
+        subprocess.CalledProcessError: If there is an error reloading the sysctl settings.
+    """
     if not Path('/etc/sysctl.d/routed-ap.conf').exists():
         subprocess.run(['sudo', 'sh', '-c', 'echo "# Enable IPv4 routing" > /etc/sysctl.d/routed-ap.conf'])
         subprocess.run(['sudo', 'sh', '-c', 'echo "net.ipv4.ip_forward=1" >> /etc/sysctl.d/routed-ap.conf'])
 
     subprocess.run(['sudo', 'sysctl', '-p', '/etc/sysctl.d/routed-ap.conf'])
 
-    # Configure the firewall
+
+def firewall_config():
+    """
+    Configures the firewall by setting up NAT (Network Address Translation) and saving the firewall rules.
+
+    This function uses the `iptables` command to configure NAT for outgoing traffic on the `eth0` interface.
+    It adds a POSTROUTING rule to perform MASQUERADE, which allows devices in the local network to access
+    the internet through the Raspberry Pi. After configuring the firewall, it saves the firewall rules
+    to the netfilter-persistent configuration file.
+
+    Raises:
+        subprocess.CalledProcessError: If there is an error executing the `iptables` or `netfilter-persistent` commands.
+    """
     subprocess.run(['sudo', 'iptables', '-t', 'nat', '-A', 'POSTROUTING', '-o', 'eth0', '-j', 'MASQUERADE'])
-    # Save the firewall rules to the netfilter-persistent configuration file
     subprocess.run(['sudo', 'netfilter-persistent', 'save'])
 
-    # Restart the hostapd, dnsmasq and dhcpcd services
 
-    subprocess.run(['sudo', 'systemctl', 'restart', 'dnsmasq'])
-    subprocess.run(['sudo', 'systemctl', 'restart', 'dhcpcd'])
-    subprocess.run(['sudo', 'systemctl', 'restart', 'hostapd'])
-    print("AP setup complete.")
-    print('dhcpcd, hostapd and dnsmasq have been restarted!')
+def stop_services():
+    """
+    Stops and disables the hostapd and dnsmasq services.
 
-    # Prompt the user to confirm the reboot
-    # user_input = input("Is the new network active? (y/n)")
-    #
-    # if user_input.lower() == "y" or user_input.lower() == "yes":
-    #     print("You can enjoy, your new network now.")
-    # else:
-    #     subprocess.run(['sudo', 'systemctl', 'restart', 'hostapd'])
-
-
-def revert_to_client_mode():
-    # Stop and disable hostapd and dnsmasq services
+    Returns:
+    None
+    """
     os.system("sudo systemctl stop hostapd")
     os.system("sudo systemctl disable hostapd")
     os.system("sudo systemctl stop dnsmasq")
     os.system("sudo systemctl disable dnsmasq")
 
-    # Restore original dhcpcd.conf file
-    os.system("sudo cp /etc/dhcpcd.conf.orig /etc/dhcpcd.conf")
-    print("Original dhcpcd.conf has been restored.")
 
-    # Restore original hostapd.conf file
-    os.system("sudo cp /etc/hostapd/hostapd.conf.orig /etc/hostapd/hostapd.conf")
-    print("Original hostapd.conf has been restored.")
+def restore_service_file(service):
+    """
+    Restores the original dhcpcd.conf file.
 
-    # Restore original dnsmasq.conf file
-    os.system("sudo cp /etc/dnsmasq.conf.orig /etc/dnsmasq.conf")
-    print("Original dnsmasq.conf has been restored.")
+    Returns:
+    None
+    """
+    os.system(f"sudo cp {service}.conf.orig {service}.conf")
+    print(f"Original {service}.conf has been restored.")
 
-    # Restart the dhcpcd service
-    os.system("sudo systemctl restart dhcpcd")
-    print("dhcpcd service has been restarted.")
-    # Restore original hostapd.conf file
+
+def restart_service(service):
+    """
+    Restarts the specified service.
+
+    Args:
+        service (str): The name of the service to restart.
+
+    Returns:
+        None
+    """
+    subprocess.run(['sudo', 'systemctl', 'restart', service])
+    print(f"{service} service has been restarted.")
+
+
+def enable_hostapd_service():
+    """
+    Enables the hostapd service.
+
+    Returns:
+    None
+    """
+    subprocess.run(['sudo', 'systemctl', 'unmask', 'hostapd'], check=True)
+    subprocess.run(['sudo', 'systemctl', 'enable', 'hostapd'], check=True)
+
+
+def update_network_configuration():
+    """
+    Updates the network configuration files.
+
+    This function updates the dhcpcd.conf, hostapd.conf, and dnsmasq.conf files.
+
+    Returns:
+    None
+    """
+
+    update_service_file(DHCPCD)
+    update_service_file(HOSTAPD)
+    # Start hostapd service
+    subprocess.run(['sudo', 'systemctl', 'start', 'hostapd'], check=True)
+    update_service_file(DNSMASQ)
+
+
+def revert_to_ap_mode():
+    """
+    Reverts the device to Access Point (AP) mode.
+
+    This function enables the hostapd service, updates the network configuration files,
+    enables IPv4 forwarding, updates the firewall rules, and restarts the network services.
+
+    Returns:
+    None
+    """
+    enable_hostapd_service()
+    update_network_configuration()
+    enable_ipv4_forwarding()
+    firewall_config()
+    # Restart the specified services
+    for service in SERVICES:
+        restart_service(service)
+
+    print("AP setup complete.")
+    print('dhcpcd, hostapd, and dnsmasq have been restarted!')
+
+
+def revert_to_client_mode():
+    """
+    Reverts the device to client mode.
+
+    This function stops and disables the hostapd and dnsmasq services,
+    restores the original dhcpcd.conf, hostapd.conf, and dnsmasq.conf files,
+    and restarts the dhcpcd service.
+
+    Returns:
+    None
+    """
+    stop_services()
+    restore_service_file(DHCPCD)
+    restore_service_file(HOSTAPD)
+    restore_service_file(DNSMASQ)
+    restart_service("dhcpcd")
