@@ -3,9 +3,9 @@ from pathlib import Path
 import os
 
 SERVICES = ['dhcpcd', 'dnsmasq', 'hostapd']
-HOSTAPD = '/etc/hostapd/hostapd.'
-DHCPCD = '/etc/dhcpcd.'
-DNSMASQ = '/etc/dnsmasq.'
+HOSTAPD_PATH = '/etc/hostapd/hostapd.'
+DHCPCD_PATH = '/etc/dhcpcd.'
+DNSMASQ_PATH = '/etc/dnsmasq.'
 
 
 def update_service_file(service):
@@ -128,11 +128,11 @@ def update_network_configuration():
     None
     """
 
-    update_service_file(DHCPCD)
-    update_service_file(HOSTAPD)
+    update_service_file(DHCPCD_PATH)
+    update_service_file(HOSTAPD_PATH)
     # Start hostapd service
     subprocess.run(['sudo', 'systemctl', 'start', 'hostapd'], check=True)
-    update_service_file(DNSMASQ)
+    update_service_file(DNSMASQ_PATH)
 
 
 def revert_to_ap_mode():
@@ -169,7 +169,7 @@ def revert_to_client_mode():
     None
     """
     stop_services()
-    restore_service_file(DHCPCD)
-    restore_service_file(HOSTAPD)
-    restore_service_file(DNSMASQ)
+    restore_service_file(DHCPCD_PATH)
+    restore_service_file(HOSTAPD_PATH)
+    restore_service_file(DNSMASQ_PATH)
     restart_service("dhcpcd")
